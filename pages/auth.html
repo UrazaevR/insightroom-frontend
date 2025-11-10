@@ -6,9 +6,139 @@
     <title>Вход - Insight Room</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/toast.css') }}">
+</head>
+    <style>
+        /* Стили для toast-уведомлений */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid;
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .toast.success {
+            border-left-color: #10b981;
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+
+        .toast.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .toast-description {
+            color: #6b7280;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 4px;
+            margin: -4px -4px -4px 0;
+            border-radius: 4px;
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .toast-close:hover {
+            color: #6b7280;
+            background: #f3f4f6;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        .toast.hiding {
+            animation: slideOutRight 0.3s ease forwards;
+        }
+
+        /* Стили для ошибок валидации */
+        .error-message {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-input.error {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .password-match {
+            color: #10b981;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="animated-bg"></div>
+    
+    <!-- Контейнер для toast-уведомлений -->
+    <div class="toast-container" id="toastContainer"></div>
     
     <header class="header">
         <div class="container">
@@ -46,21 +176,25 @@
                     <div class="method-input-group active" id="loginInput">
                         <label class="form-label">Логин</label>
                         <input type="text" class="form-input" placeholder="Ваш логин" id="loginField">
+                        <div class="error-message" id="loginError"></div>
                     </div>
 
                     <div class="method-input-group" id="emailInput">
                         <label class="form-label">Email</label>
                         <input type="email" class="form-input" placeholder="your@email.com" id="emailField">
+                        <div class="error-message" id="emailError"></div>
                     </div>
 
                     <div class="method-input-group" id="phoneInput">
                         <label class="form-label">Телефон</label>
                         <input type="tel" class="form-input" placeholder="+7-000-000-00-00" id="phoneField">
+                        <div class="error-message" id="phoneError"></div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Пароль</label>
                         <input type="password" class="form-input" placeholder="Введите пароль" id="passwordField" required>
+                        <div class="error-message" id="passwordError"></div>
                     </div>
 
                     <div class="form-group">
@@ -81,31 +215,38 @@
                     <div class="form-group">
                         <label class="form-label">Имя</label>
                         <input id="username" type="text" class="form-input" placeholder="Ваше имя" required>
+                        <div class="error-message" id="usernameError"></div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Логин</label>
                         <input id="login" type="text" class="form-input" placeholder="Ваш логин" required>
+                        <div class="error-message" id="registerLoginError"></div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Email</label>
                         <input id="email" type="email" class="form-input" placeholder="your@email.com" required>
+                        <div class="error-message" id="registerEmailError"></div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Телефон</label>
                         <input id="tel" type="tel" class="form-input" placeholder="+7-000-000-00-00">
+                        <div class="error-message" id="telError"></div>
                     </div>
                     
                     <div class="form-group">
                         <label class="form-label">Пароль</label>
                         <input id="password" type="password" class="form-input" placeholder="Не менее 8 символов" required>
+                        <div class="error-message" id="registerPasswordError"></div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Подтвердите пароль</label>
                         <input id="confirmPassword" type="password" class="form-input" placeholder="Повторите пароль" required>
+                        <div class="error-message" id="confirmPasswordError"></div>
+                        <div class="password-match" id="passwordMatch">Пароли совпадают</div>
                     </div>
 
                     <div class="form-group">
@@ -113,6 +254,7 @@
                             <input type="checkbox" id="agreeTerms" required> 
                             Я согласен с <a href="#" class="auth-link">условиями использования</a>
                         </label>
+                        <div class="error-message" id="termsError"></div>
                     </div>
 
                     <button type="submit" class="auth-btn" id="submitBtn">Создать аккаунт</button>
@@ -123,6 +265,71 @@
 
     <script src="{{ url_for('static', filename='JS/auth.js') }}"></script>
     <script>
+        // Функция для показа toast-уведомлений
+        function showToast(title, description, type = 'success', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            // Иконки для разных типов уведомлений
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || 'ℹ'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    ${description ? `<div class="toast-description">${description}</div>` : ''}
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Автоматическое удаление через указанное время
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.classList.add('hiding');
+                        setTimeout(() => {
+                            if (toast.parentElement) {
+                                toast.remove();
+                            }
+                        }, 300);
+                    }
+                }, duration);
+            }
+            
+            return toast;
+        }
+
+        // Функция для показа ошибок валидации
+        function showError(fieldId, message) {
+            const errorElement = document.getElementById(fieldId + 'Error');
+            const inputElement = document.getElementById(fieldId);
+            
+            if (errorElement && inputElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                inputElement.classList.add('error');
+            }
+        }
+
+        // Функция для скрытия ошибок валидации
+        function hideError(fieldId) {
+            const errorElement = document.getElementById(fieldId + 'Error');
+            const inputElement = document.getElementById(fieldId);
+            
+            if (errorElement && inputElement) {
+                errorElement.style.display = 'none';
+                inputElement.classList.remove('error');
+            }
+        }
+
         // Функция для переключения между формами входа и регистрации
         function showForm(formType) {
             // Обновляем активные табы
@@ -136,6 +343,20 @@
                 form.classList.remove('active');
             });
             document.getElementById(formType + 'Form').classList.add('active');
+            
+            // Очищаем ошибки при переключении форм
+            clearAllErrors();
+        }
+
+        // Функция для очистки всех ошибок
+        function clearAllErrors() {
+            document.querySelectorAll('.error-message').forEach(error => {
+                error.style.display = 'none';
+            });
+            document.querySelectorAll('.form-input').forEach(input => {
+                input.classList.remove('error');
+            });
+            document.getElementById('passwordMatch').style.display = 'none';
         }
 
         // Функция для логирования данных формы
@@ -173,7 +394,6 @@
                 console.log(`  телефон: ${formData.tel || 'не указано'}`);
                 console.log(`  пароль: ${formData.password || 'не указан'}`);
                 console.log(`  подтверждение пароля: ${formData.confirmPassword || 'не указано'}`);
-                //console.log(`  согласие с условиями: ${document.getElementById('agreeTerms').checked ? 'да' : 'нет'}`);
             }
             
             console.log('Временная метка:', new Date().toISOString());
@@ -203,7 +423,89 @@
                         phoneInput.classList.add('active');
                         break;
                 }
+                
+                // Очищаем ошибки при смене метода
+                clearAllErrors();
             });
+        }
+
+        // Функция для проверки паролей на совпадение
+        function validatePasswords() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const matchElement = document.getElementById('passwordMatch');
+            const errorElement = document.getElementById('confirmPasswordError');
+            
+            hideError('confirmPassword');
+            matchElement.style.display = 'none';
+            
+            if (confirmPassword === '') {
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('confirmPassword', 'Пароли не совпадают');
+                return false;
+            } else {
+                matchElement.style.display = 'block';
+                return true;
+            }
+        }
+
+        // Функция для валидации формы регистрации
+        function validateRegisterForm() {
+            let isValid = true;
+            
+            // Очищаем предыдущие ошибки
+            clearAllErrors();
+            
+            // Проверка имени
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                showError('username', 'Введите ваше имя');
+                isValid = false;
+            }
+            
+            // Проверка логина
+            const login = document.getElementById('login').value.trim();
+            if (!login) {
+                showError('registerLogin', 'Введите логин');
+                isValid = false;
+            }
+            
+            // Проверка email
+            const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email) {
+                showError('registerEmail', 'Введите email');
+                isValid = false;
+            } else if (!emailRegex.test(email)) {
+                showError('registerEmail', 'Введите корректный email');
+                isValid = false;
+            }
+            
+            // Проверка пароля
+            const password = document.getElementById('password').value;
+            if (!password) {
+                showError('registerPassword', 'Введите пароль');
+                isValid = false;
+            } else if (password.length < 8) {
+                showError('registerPassword', 'Пароль должен содержать не менее 8 символов');
+                isValid = false;
+            }
+            
+            // Проверка подтверждения пароля
+            if (!validatePasswords()) {
+                isValid = false;
+            }
+            
+            // Проверка согласия с условиями
+            if (!document.getElementById('agreeTerms').checked) {
+                showError('terms', 'Необходимо согласие с условиями использования');
+                isValid = false;
+            }
+            
+            return isValid;
         }
 
         // Обработка формы входа
@@ -220,23 +522,35 @@
             loginBtn.disabled = true;
             loginBtn.textContent = 'Вход...';
             
+            // Очищаем ошибки
+            clearAllErrors();
+            
             switch(method) {
                 case 'login':
-                    login_info.login = document.getElementById('loginField').value;
+                    login_info.login = document.getElementById('loginField').value.trim();
                     identifier = login_info.login;
+                    if (!identifier) {
+                        showError('login', 'Введите логин');
+                    }
                     break;
                 case 'email':
-                    login_info.email = document.getElementById('emailField').value;
+                    login_info.email = document.getElementById('emailField').value.trim();
                     identifier = login_info.email;
+                    if (!identifier) {
+                        showError('email', 'Введите email');
+                    }
                     break;
                 case 'phone':
-                    login_info.phone = document.getElementById('phoneField').value;
+                    login_info.phone = document.getElementById('phoneField').value.trim();
                     identifier = login_info.phone;
+                    if (!identifier) {
+                        showError('phone', 'Введите телефон');
+                    }
                     break;
             }
             
             if (!password) {
-                alert('Пожалуйста, введите пароль');
+                showError('password', 'Введите пароль');
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти';
                 return;
@@ -245,7 +559,6 @@
             }
             
             if (!identifier) {
-                alert('Пожалуйста, заполните поле для входа');
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти';
                 return;
@@ -264,17 +577,20 @@
                 // Авторизация
                 const ans = await authService.login(login_info);
                 if (ans !== true){
-                    console.log(ans)
-                    alert(ans);
+                    console.log(ans);
+                    showToast('Ошибка входа', ans, 'error', 5000);
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Войти';
                 } else {
-                    // Успешный вход - перенаправляем
-                    window.location.href = '/cabinet';
+                    // Успешный вход
+                    showToast('Вход выполнен', 'Добро пожаловать!', 'success', 3000);
+                    setTimeout(() => {
+                        window.location.href = '/cabinet';
+                    }, 1500);
                 }
             } catch (error) {
                 console.error('Ошибка входа:', error);
-                alert('Произошла ошибка при входе');
+                showToast('Ошибка', 'Произошла ошибка при входе', 'error', 5000);
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Войти';
             }
@@ -285,26 +601,9 @@
             e.preventDefault();
             
             const submitBtn = document.getElementById('submitBtn');
-            const username = document.getElementById('username').value;
-            const login = document.getElementById('login').value;
-            const email = document.getElementById('email').value;
-            const tel = document.getElementById('tel').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
             
-            // Валидация
-            if (password !== confirmPassword) {
-                alert('Пароли не совпадают!');
-                return;
-            }
-            
-            if (password.length < 8) {
-                alert('Пароль должен содержать не менее 8 символов');
-                return;
-            }
-            
-            if (!document.getElementById('agreeTerms').checked) {
-                alert('Необходимо согласие с условиями использования');
+            // Валидация формы
+            if (!validateRegisterForm()) {
                 return;
             }
             
@@ -312,32 +611,40 @@
             submitBtn.textContent = 'Регистрация...';
             
             const new_user = {
-                username: username,
-                login: login,
-                email: email,
-                tel: tel,
-                password: password
+                username: document.getElementById('username').value.trim(),
+                login: document.getElementById('login').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                tel: document.getElementById('tel').value.trim(),
+                password: document.getElementById('password').value,
+                confirmPassword: document.getElementById('confirmPassword').value
             };
 
             // Логируем данные перед отправкой
-            logAuthData({...new_user, confirmPassword: confirmPassword}, 'register');
+            logAuthData(new_user, 'register');
 
             try {
                 const ans = await authService.register(new_user);
                 if (ans !== true){
-                    alert(ans);
+                    showToast('Ошибка регистрации', ans, 'error', 5000);
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Создать аккаунт';
                 } else {
-                    window.location.href = '/cabinet';
+                    showToast('Регистрация успешна', 'Добро пожаловать!', 'success', 3000);
+                    setTimeout(() => {
+                        window.location.href = '/cabinet';
+                    }, 1500);
                 }
             } catch (error) {
                 console.error('Ошибка регистрации:', error);
-                alert('Произошла ошибка при регистрации');
+                showToast('Ошибка', 'Произошла ошибка при регистрации', 'error', 5000);
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Создать аккаунт';
             }
         });
+
+        // Слушатели для проверки паролей в реальном времени
+        document.getElementById('password').addEventListener('input', validatePasswords);
+        document.getElementById('confirmPassword').addEventListener('input', validatePasswords);
 
         // Проверка аутентификации при загрузке
         document.addEventListener('DOMContentLoaded', function() {
@@ -348,44 +655,6 @@
                 window.location.href = '/cabinet';
             }
         });
-
-        // Функция для показа/скрытия уведомлений
-        function showNotification(message, type = 'error') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 5px;
-                color: white;
-                z-index: 10000;
-                font-weight: 500;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                transition: all 0.3s ease;
-                max-width: 400px;
-            `;
-            
-            if (type === 'error') {
-                notification.style.background = '#ff4757';
-            } else {
-                notification.style.background = '#2ed573';
-            }
-            
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            // Автоматическое скрытие через 5 секунд
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transform = 'translateX(100px)';
-                setTimeout(() => {
-                    if (document.body.contains(notification)) {
-                        document.body.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000);
-        }
     </script>
 </body>
 </html>

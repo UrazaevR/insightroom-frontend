@@ -1,4 +1,4 @@
-/* dashboard.css */
+/* personal-cabinet.css - ИСПРАВЛЕННАЯ ВЕРСИЯ */
 .dashboard-container {
     max-width: 1200px;
     padding: 30px 20px;
@@ -21,10 +21,10 @@
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* Макет */
+/* ИСПРАВЛЕННЫЙ МАКЕТ - ТРИ КОЛОНКИ */
 .dashboard-layout {
     display: grid;
-    grid-template-columns: 1fr 350px;
+    grid-template-columns: 280px 1fr 280px;
     gap: 30px;
     align-items: start;
 }
@@ -43,7 +43,7 @@
     top: 30px;
 }
 
-/* Секции */
+/* Остальные стили остаются без изменений */
 .dashboard-section, .sidebar-section {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
@@ -327,7 +327,7 @@
 /* Адаптивность для мобильных */
 @media (max-width: 768px) {
     .user-info {
-        display: none; /* Скрываем на мобильных для экономии места */
+        display: none;
     }
     
     .user-menu {
@@ -335,7 +335,7 @@
     }
 }
 
-/* Адаптивность */
+/* ИСПРАВЛЕННАЯ АДАПТИВНОСТЬ ДЛЯ ТРЕХ КОЛОНОК */
 @media (max-width: 968px) {
     .dashboard-layout {
         grid-template-columns: 1fr;
@@ -930,7 +930,7 @@ body.auto-theme {
     width: 280px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    z-index: 1100; /* Увеличиваем z-index чтобы было поверх модальных окон */
+    z-index: 1100;
 }
 
 .settings-dropdown.show {
@@ -938,7 +938,6 @@ body.auto-theme {
     animation: slideDown 0.3s ease;
 }
 
-/* Увеличиваем z-index для кнопки настроек */
 .settings-btn {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -952,10 +951,9 @@ body.auto-theme {
     transition: all 0.3s ease;
     margin-right: 10px;
     position: relative;
-    z-index: 1101; /* Кнопка должна быть выше выпадающего меню */
+    z-index: 1101;
 }
 
-/* Убедимся, что модальные окна имеют меньший z-index */
 .modal-overlay {
     display: none;
     position: fixed;
@@ -964,19 +962,18 @@ body.auto-theme {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 1000; /* Меньше чем у настроек */
+    z-index: 1000;
     justify-content: center;
     align-items: center;
 }
 
-/* Для header тоже увеличим z-index чтобы меню настроек не обрезалось */
 .header {
     background-color: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     padding: 20px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     position: relative;
-    z-index: 1050; /* Header выше модальных окон но ниже настроек */
+    z-index: 1050;
 }
 
 /* Адаптивность для меню настроек */
@@ -985,6 +982,57 @@ body.auto-theme {
         right: 10px;
         left: 10px;
         width: auto;
-        top: 65px; /* Немного ближе к кнопке на мобильных */
+        top: 65px;
     }
+}
+
+.error-message {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+    display: none;
+}
+
+.form-input.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.demo-notice {
+    background: #fef3cd;
+    border: 1px solid #fde68a;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #92400e;
+}
+
+.status-badge {
+    background: #667eea;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Исправление для кнопок */
+.item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 120px;
+}
+
+.action-btn.small {
+padding: 6px 10px;
+font-size: 11px;
+min-width: 90px;
+}
+
+.dashboard-layout {
+    grid-template-columns: 340px minmax(400px, 1fr) 300px;
+    gap: 20px; /* добавить отступы между колонками */
 }

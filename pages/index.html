@@ -6,9 +6,13 @@
     <title>Insight Room - Видеовстречи</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/index.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/toast.css') }}">
 </head>
 <body>
     <div class="animated-bg"></div>
+    
+    <!-- Контейнер для toast-уведомлений -->
+    <div class="toast-container" id="toastContainer"></div>
     
     <header class="header">
         <div class="container">
@@ -176,6 +180,48 @@
 
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
     <script>
+        // Функция для показа toast-уведомлений
+        function showToast(title, description, type = 'success', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            // Иконки для разных типов уведомлений
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || 'ℹ'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    ${description ? `<div class="toast-description">${description}</div>` : ''}
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Автоматическое удаление через указанное время
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.classList.add('hiding');
+                        setTimeout(() => {
+                            if (toast.parentElement) {
+                                toast.remove();
+                            }
+                        }, 300);
+                    }
+                }, duration);
+            }
+            
+            return toast;
+        }
+
         // Функции для работы с модальными окнами
         function openCreateMeetingModal() {
             document.getElementById('createMeetingModal').classList.add('show');
@@ -236,19 +282,40 @@
             console.log('Создана встреча с ID:', meetingId);
             console.log('Ссылка на встречу:', meetingUrl);
             console.log('========================');
+            
+            // Toast-уведомление о создании встречи
+            showToast(
+                'Встреча создана!', 
+                'Теперь вы можете поделиться ссылкой с участниками',
+                'success',
+                4000
+            );
         }
 
         // Функция копирования ссылки
         function copyToClipboard() {
             const meetingUrl = document.getElementById('meetingUrl').value;
             navigator.clipboard.writeText(meetingUrl).then(function() {
-                alert('Ссылка скопирована в буфер обмена!');
+                // Toast-уведомление о копировании
+                showToast(
+                    'Ссылка скопирована!', 
+                    'Теперь вы можете поделиться ей с участниками',
+                    'success',
+                    3000
+                );
+                
                 console.log('=== СОЗДАНИЕ ВСТРЕЧИ ===');
                 console.log('Ссылка скопирована:', meetingUrl);
                 console.log('Временная метка:', new Date().toISOString());
                 console.log('========================');
             }, function(err) {
                 console.error('Ошибка копирования: ', err);
+                showToast(
+                    'Ошибка копирования', 
+                    'Не удалось скопировать ссылку в буфер обмена',
+                    'error',
+                    3000
+                );
             });
         }
 
@@ -284,7 +351,15 @@
             
             // Здесь должна быть логика присоединения к встречи
             const meetingCode = formData.get('meeting_code');
-            alert(`Присоединение к встрече ${meetingCode}...`);
+            
+            // Toast-уведомление о присоединении
+            showToast(
+                'Присоединение к встрече', 
+                `Подключаемся к встрече ${meetingCode}...`,
+                'success',
+                3000
+            );
+            
             closeJoinMeetingModal();
         }
 
@@ -309,7 +384,15 @@
             
             // Здесь должна быть логика парсинга ссылки и присоединения
             const meetingLink = formData.get('meeting_link');
-            alert(`Присоединение по ссылке: ${meetingLink}...`);
+            
+            // Toast-уведомление о присоединении
+            showToast(
+                'Присоединение по ссылке', 
+                `Подключаемся к встрече...`,
+                'success',
+                3000
+            );
+            
             closeJoinMeetingModal();
         }
 
@@ -327,14 +410,31 @@
             
             console.log('=== ПЛАНИРОВАНИЕ ВСТРЕЧИ ===');
             console.log('Введенные параметры:');
-            console.log('  название:', meetingData.title);
-            console.log('  дата:', meetingData.date);
-            console.log('  время:', meetingData.time);
-            console.log('  описание:', meetingData.description || 'не указано');
+            console.log('  meeting_title:', meetingData.title);
+            console.log('  meeting_date:', meetingData.date);
+            console.log('  meeting_time:', meetingData.time);
+            console.log('  meeting_description:', meetingData.description || 'не указано');
             console.log('Временная метка:', new Date().toISOString());
             console.log('============================');
             
-            alert('Встреча запланирована! В реальном приложении здесь было бы создание события и рассылка приглашений.');
+            // Форматирование даты для уведомления
+            const formattedDate = new Date(meetingData.date + 'T' + meetingData.time).toLocaleString('ru-RU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            // Toast-уведомление о планировании встречи
+            showToast(
+                'Встреча запланирована!', 
+                `${meetingData.title} - ${formattedDate}`,
+                'success',
+                5000
+            );
+            
             closeScheduleMeetingModal();
         }
     </script>

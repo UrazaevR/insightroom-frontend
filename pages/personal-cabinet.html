@@ -6,10 +6,12 @@
     <title>Личный кабинет - Insight Room</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/personal-cabinet.css') }}">
-    
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/toast.css') }}">
 </head>
 <body>
     <div class="animated-bg"></div>
+    
+    <div class="toast-container" id="toastContainer"></div>
     
     <header class="header">
         <div class="container">
@@ -40,9 +42,6 @@
                         </button>
                         <button class="theme-option" data-theme="dark" onclick="changeTheme('dark')">
                             Темная
-                        </button>
-                        <button class="theme-option" data-theme="auto" onclick="changeTheme('auto')">
-                            Авто
                         </button>
                     </div>
                 </div>
@@ -86,86 +85,79 @@
             </div>
 
             <div class="dashboard-layout">
-                <div class="dashboard-main">
-                    <!-- Активные сессии (объединенные встречи) -->
-                    <section class="dashboard-section">
+                <div class="dashboard-sidebar">
+                    <section class="sidebar-section">
                         <div class="section-header">
                             <div class="section-title">
-                                <img src="{{ url_for('static', filename='images/calendar-icon.png') }}" alt="Сессии" class="section-icon">
-                                <h2>Активные сессии</h2>
+                                <img src="{{ url_for('static', filename='images/calendar-icon.png') }}" alt="Мои встречи" class="section-icon">
+                                <h3>Мои встречи</h3>
                             </div>
                             <span class="section-count">{{ sessions_count }}</span>
                         </div>
-                        
-                        <!-- Текущие встречи (онлайн) -->
-                        <div class="session-group">
-                            <h3 class="session-group-title">Текущие встречи</h3>
-                            <div class="compact-list">
-                                {% for meeting in current_meetings %}
-                                <div class="list-item">
-                                    <div class="item-main">
-                                        <div class="item-header">
-                                            <h3>{{ meeting.title }}</h3>
-                                            <span class="session-badge live">LIVE</span>
-                                        </div>
-                                        <p class="item-meta">{{ meeting.time }} • ID: {{ meeting.id }}</p>
-                                        <p class="session-type">Встреча • {{ meeting.participants }} участников</p>
+                        <div class="compact-list">
+                            {% for meeting in current_meetings %}
+                            <div class="list-item">
+                                <div class="item-main">
+                                    <div class="item-header">
+                                        <h3>{{ meeting.title }}</h3>
+                                        <span class="status-badge">{{ meeting.status }}</span>
                                     </div>
-                                    <div class="item-actions">
-                                        <form action="/join_meeting" method="POST" style="display: inline;">
-                                            <input type="hidden" name="meeting_id" value="{{ meeting.id }}">
-                                            <button type="submit" class="action-btn small primary">Присоединиться</button>
-                                        </form>
-                                        <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
-                                    </div>
+                                    <p class="item-description">{{ meeting.description }}</p>
                                 </div>
-                                {% endfor %}
-                                {% if not current_meetings %}
-                                <div class="empty-state">
-                                    <p>Нет активных встреч</p>
+                                <div class="item-actions">
+                                    <button type="button" class="action-btn small primary">Присоединиться</button>
+                                    <button type="button" class="action-btn small secondary">Ссылка</button>
                                 </div>
-                                {% endif %}
                             </div>
+                            {% endfor %}
                         </div>
-
-                        <!-- Запланированные встречи -->
-                        <div class="session-group">
-                            <h3 class="session-group-title">Запланированные встречи</h3>
-                            <div class="compact-list">
-                                {% for meeting in scheduled_meetings %}
-                                <div class="list-item">
-                                    <div class="item-main">
-                                        <div class="item-header">
-                                            <h3>{{ meeting.title }}</h3>
-                                            <span class="session-badge upcoming">Запланировано</span>
-                                        </div>
-                                        <p class="item-meta">{{ meeting.date }} в {{ meeting.time }} • ID: {{ meeting.id }}</p>
-                                        <p class="session-type">Встреча</p>
-                                    </div>
-                                    <div class="item-actions">
-                                        <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
-                                        <button type="button" class="action-btn small secondary" onclick="cancelMeeting('{{ meeting.id }}')">Отменить</button>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                                {% if not scheduled_meetings %}
-                                <div class="empty-state">
-                                    <p>Нет запланированных встреч</p>
-                                </div>
-                                {% endif %}
-                            </div>
+                        {% if not current_meetings %}
+                        <div class="empty-state">
+                            <p>Нет встреч</p>
                         </div>
-
+                        {% endif %}
                         <div class="section-footer">
-                            <button type="button" class="text-btn" onclick="openScheduleModal()">+ Запланировать встречу</button>
-                            <button type="button" class="text-btn" onclick="openCreateRoomModal()" style="margin-left: 15px;">+ Создать комнату</button>
+                            <button type="button" class="text-btn small" onclick="openScheduleModal()">+ Запланировать встречу</button>
                         </div>
                     </section>
                 </div>
 
-                <!-- Боковая панель -->
+                <div class="dashboard-main">
+                    <section class="dashboard-section">
+                        <div class="section-header">
+                            <div class="section-title">
+                                <img src="{{ url_for('static', filename='images/calendar-icon.png') }}" alt="Все встречи" class="section-icon">
+                                <h2>Все встречи</h2>
+                            </div>
+                            <span class="section-count">{{ all_meetings_count }}</span>
+                        </div>
+                        
+                        <div class="compact-list">
+                            {% for meeting in all_meetings %}
+                            <div class="list-item">
+                                <div class="item-main">
+                                    <div class="item-header">
+                                        <h3>{{ meeting.title }}</h3>
+                                        <span class="status-badge">{{ meeting.status }}</span>
+                                    </div>
+                                    <p class="item-description">{{ meeting.description }}</p>
+                                </div>
+                                <div class="item-actions">
+                                    <button type="button" class="action-btn small primary">Присоединиться</button>
+                                    <button type="button" class="action-btn small secondary">Ссылка</button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if not all_meetings %}
+                        <div class="empty-state">
+                            <p>Нет встреч</p>
+                        </div>
+                        {% endif %}
+                    </section>
+                </div>
+
                 <div class="dashboard-sidebar">
-                    <!-- Быстрый доступ -->
                     <section class="sidebar-section">
                         <div class="section-header">
                             <div class="section-title">
@@ -174,20 +166,17 @@
                             </div>
                         </div>
                         <div class="quick-actions-compact">
-                            <form action="/create_meeting" method="POST" class="quick-action-form">
-                                <button type="submit" class="quick-action-btn">
-                                    <img src="{{ url_for('static', filename='images/create-icon.png') }}" alt="Создать встречу" class="action-icon">
-                                    <span>Новая встреча</span>
-                                </button>
-                            </form>
                             <button type="button" class="quick-action-btn" onclick="openJoinModal()">
                                 <img src="{{ url_for('static', filename='images/join-icon.png') }}" alt="Присоединиться" class="action-icon">
                                 <span>Присоединиться</span>
                             </button>
+                            <button type="button" class="quick-action-btn" onclick="openCreateRoomModal()">
+                                <img src="{{ url_for('static', filename='images/create-icon.png') }}" alt="Создать комнату" class="action-icon">
+                                <span>Создать комнату</span>
+                            </button>
                         </div>
                     </section>
 
-                    <!-- Контакты -->
                     <section class="sidebar-section">
                         <div class="section-header">
                             <div class="section-title">
@@ -202,15 +191,18 @@
                                 <div class="contact-avatar small">{{ contact.initials }}</div>
                                 <div class="contact-info">
                                     <span class="contact-name">{{ contact.name }}</span>
-                                    <span class="contact-email">{{ contact.email }}</span>
+                                    <span class="contact-login">{{ contact.login }}</span>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
+                        {% if not contacts %}
+                        <div class="empty-state">
+                            <p>Нет контактов</p>
+                        </div>
+                        {% endif %}
                         <div class="section-footer">
-                            <form action="/add_contact" method="POST" style="display: inline;">
-                                <button type="submit" class="text-btn small">+ Добавить контакт</button>
-                            </form>
+                            <button type="button" class="text-btn small" onclick="openAddContactModal()">+ Добавить контакт</button>
                         </div>
                     </section>
                 </div>
@@ -218,7 +210,7 @@
         </div>
     </main>
 
-    <!-- Модальное окно для планирования встречи -->
+    <!-- Модальные окна -->
     <div id="scheduleModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -253,31 +245,29 @@
         </div>
     </div>
 
-    <!-- Модальное окно для присоединения -->
     <div id="joinModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title">Присоединиться к встрече</h2>
                 <button class="close-btn" onclick="closeJoinModal()">×</button>
             </div>
-            <form id="joinForm" class="modal-form" action="/join_meeting" method="POST">
+            <form id="joinForm" class="modal-form">
                 <div class="form-group">
-                    <label class="form-label">ID встречи или ссылка</label>
-                    <input type="text" class="form-input" name="meeting_id" placeholder="Введите ID встречи или ссылку" required>
+                    <label class="form-label">Идентификатор встречи или ссылка</label>
+                    <input type="text" class="form-input" name="meeting_id" placeholder="Введите идентификатор встречи или ссылку" required>
                 </div>
                 <button type="submit" class="modal-btn">Присоединиться</button>
             </form>
         </div>
     </div>
 
-    <!-- Модальное окно для создания комнаты -->
     <div id="createRoomModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 class="modal-title">Создать комнату</h2>
                 <button class="close-btn" onclick="closeCreateRoomModal()">×</button>
             </div>
-            <form id="createRoomForm" class="modal-form" action="/create_room" method="POST">
+            <form id="createRoomForm" class="modal-form">
                 <div class="form-group">
                     <label class="form-label">Название комнаты</label>
                     <input type="text" class="form-input" name="room_name" placeholder="Введите название комнаты" required>
@@ -293,203 +283,205 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='JS/auth.js') }}"></script>
+    <div id="addContactModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Добавить контакт</h2>
+                <button class="close-btn" onclick="closeAddContactModal()">×</button>
+            </div>
+            <form id="addContactForm" class="modal-form">
+                <div class="form-group">
+                    <label class="form-label">Имя контакта</label>
+                    <input type="text" class="form-input" id="contactName" placeholder="Введите имя контакта" required>
+                </div>
 
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 Insight Room. Все права защищены.</p>
+                <div class="form-group">
+                    <label class="form-label">Логин пользователя</label>
+                    <input type="text" class="form-input" id="contactLogin" placeholder="Введите логин пользователя" required>
+                </div>
+                
+                <button type="submit" class="modal-btn">Добавить контакт</button>
+            </form>
         </div>
-    </footer>
+    </div>
 
     <script>
-        // Функция для логирования данных формы
-        function logFormData(formData, formType) {
-            console.log('=== ДАННЫЕ ФОРМЫ ===');
-            console.log('Тип формы:', formType);
-            console.log('Введенные параметры:');
+        // Функция для логирования в консоль
+        function logUserInput(formName, data) {
+            console.log(`[FORM_SUBMIT] ${formName}`);
             
-            for (let [key, value] of formData.entries()) {
+            for (const [key, value] of Object.entries(data)) {
                 console.log(`  ${key}: ${value}`);
             }
             
-            console.log('Временная метка:', new Date().toISOString());
-            console.log('================================');
+            console.log('---');
         }
 
-        // Функции для работы с модальными окнами
-        function openScheduleModal() {
-            const modal = document.getElementById('scheduleModal');
-            modal.classList.add('show');
+        // Функция для показа toast-уведомлений
+        function showToast(title, description, type = 'success', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
             
-            // Устанавливаем минимальную дату - сегодня
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('meetingDate').min = today;
+            const formattedDescription = description ? description.replace(/\n/g, '<br>') : '';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : '⚠'}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    ${formattedDescription ? `<div class="toast-description">${formattedDescription}</div>` : ''}
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            toastContainer.appendChild(toast);
+            if (duration > 0) {
+                setTimeout(() => {
+                    if (toast.parentElement) {
+                        toast.classList.add('hiding');
+                        setTimeout(() => toast.remove(), 300);
+                    }
+                }, duration);
+            }
         }
 
-        function closeScheduleModal() {
-            const modal = document.getElementById('scheduleModal');
-            modal.classList.remove('show');
+        // Функция для переключения темы
+        function changeTheme(theme) {
+            // Устанавливаем класс для body
+            document.body.className = theme + '-theme';
+            localStorage.setItem('theme', theme);
+            
+            // Обновляем активные кнопки
+            updateThemeButtons(theme);
+            
+            // Логируем смену темы
+            console.log(`[THEME_CHANGE] theme: ${theme}`);
         }
 
-        function openJoinModal() {
-            const modal = document.getElementById('joinModal');
-            modal.classList.add('show');
-        }
-
-        function closeJoinModal() {
-            const modal = document.getElementById('joinModal');
-            modal.classList.remove('show');
-        }
-
-        function openCreateRoomModal() {
-            const modal = document.getElementById('createRoomModal');
-            modal.classList.add('show');
-        }
-
-        function closeCreateRoomModal() {
-            const modal = document.getElementById('createRoomModal');
-            modal.classList.remove('show');
-        }
-
-        // Закрытие модальных окон при клике вне их
-        document.querySelectorAll('.modal-overlay').forEach(modal => {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.classList.remove('show');
+        // Функция для обновления активных кнопок темы
+        function updateThemeButtons(activeTheme) {
+            const themeButtons = document.querySelectorAll('.theme-option');
+            themeButtons.forEach(button => {
+                if (button.getAttribute('data-theme') === activeTheme) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
                 }
             });
-        });
+        }
 
-        // Обработка формы планирования встречи
+        // Функции для модальных окон
+        function openScheduleModal() {
+            document.getElementById('scheduleModal').classList.add('show');
+            document.getElementById('meetingDate').min = new Date().toISOString().split('T')[0];
+        }
+
+        function closeScheduleModal() { document.getElementById('scheduleModal').classList.remove('show'); }
+        function openJoinModal() { document.getElementById('joinModal').classList.add('show'); }
+        function closeJoinModal() { document.getElementById('joinModal').classList.remove('show'); }
+        function openCreateRoomModal() { document.getElementById('createRoomModal').classList.add('show'); }
+        function closeCreateRoomModal() { document.getElementById('createRoomModal').classList.remove('show'); }
+        function openAddContactModal() { 
+            document.getElementById('addContactModal').classList.add('show');
+            document.getElementById('addContactForm').reset();
+        }
+        function closeAddContactModal() { document.getElementById('addContactModal').classList.remove('show'); }
+
+        // Обработчики форм
         document.getElementById('scheduleForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const formData = new FormData();
-            formData.append('meeting_title', document.getElementById('meetingTitle').value);
-            formData.append('meeting_date', document.getElementById('meetingDate').value);
-            formData.append('meeting_time', document.getElementById('meetingTime').value);
-            formData.append('meeting_description', document.getElementById('meetingDescription').value);
+            const formData = {
+                'meeting.title': document.getElementById('meetingTitle').value,
+                'meeting.date': document.getElementById('meetingDate').value,
+                'meeting.time': document.getElementById('meetingTime').value,
+                'meeting.description': document.getElementById('meetingDescription').value || '(empty)'
+            };
             
-            // Логирование данных
-            logFormData(formData, 'Планирование встречи');
+            logUserInput('SCHEDULE_MEETING', formData);
             
-            console.log('Данные встречи:', {
-                meeting_title: document.getElementById('meetingTitle').value,
-                meeting_date: document.getElementById('meetingDate').value,
-                meeting_time: document.getElementById('meetingTime').value,
-                meeting_description: document.getElementById('meetingDescription').value
-            });
-            alert('Встреча запланирована!');
+            showToast('Встреча запланирована!', 'Данные будут обновлены', 'success');
             closeScheduleModal();
-            
-            // Очищаем форму
-            this.reset();
         });
 
-        // Обработка формы присоединения к встрече
         document.getElementById('joinForm').addEventListener('submit', function(e) {
-            const formData = new FormData(this);
+            e.preventDefault();
             
-            // Логирование данных
-            logFormData(formData, 'Присоединение к встрече');
+            const meetingId = this.querySelector('input[name="meeting_id"]').value;
+            const formData = {
+                'meeting.id': meetingId
+            };
+            
+            logUserInput('JOIN_MEETING', formData);
+            
+            showToast('Присоединение', `Подключаемся к встрече`, 'success');
+            closeJoinModal();
         });
 
-        // Обработка формы создания комнаты
         document.getElementById('createRoomForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             const formData = new FormData(this);
+            const data = {
+                'room.name': formData.get('room_name'),
+                'room.description': formData.get('room_description') || '(empty)'
+            };
             
-            // Логирование данных
-            logFormData(formData, 'Создание комнаты');
+            logUserInput('CREATE_ROOM', data);
+            
+            showToast('Комната создана!', 'Данные будут обновлены', 'success');
+            closeCreateRoomModal();
         });
 
-        // Вспомогательные функции
-        function copyMeetingLink(meetingId) {
-            const link = `${window.location.origin}/join/${meetingId}`;
+        document.getElementById('addContactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             
-            console.log('=== КОПИРОВАНИЕ ССЫЛКИ ===');
-            console.log('meeting_id:', meetingId);
-            console.log('meeting_link:', link);
-            console.log('Временная метка:', new Date().toISOString());
-            console.log('==========================');
+            const contactName = document.getElementById('contactName').value.trim();
+            const contactLogin = document.getElementById('contactLogin').value.trim();
             
-            navigator.clipboard.writeText(link).then(() => {
-                alert('Ссылка скопирована в буфер обмена!');
-            });
-        }
-
-        function cancelMeeting(meetingId) {
-            console.log('=== ОТМЕНА ВСТРЕЧИ ===');
-            console.log('meeting_id:', meetingId);
-            console.log('Временная метка:', new Date().toISOString());
-            console.log('======================');
+            const formData = {
+                'contact.name': contactName,
+                'contact.login': contactLogin
+            };
             
-            if (confirm('Вы уверены, что хотите отменить эту встречу?')) {
-                console.log('Отмена встречи:', meetingId);
-                alert('Встреча отменена');
-            }
-        }
-
-        // Функции для работы с настройками
-        function toggleSettings() {
-            const dropdown = document.getElementById('settingsDropdown');
-            dropdown.classList.toggle('show');
-        }
-
-        // Закрытие меню настроек при клике вне его
-        document.addEventListener('click', function(e) {
-            const dropdown = document.getElementById('settingsDropdown');
-            const settingsBtn = document.querySelector('.settings-btn');
+            logUserInput('ADD_CONTACT', formData);
             
-            if (dropdown && settingsBtn && !dropdown.contains(e.target) && !settingsBtn.contains(e.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        // Смена темы
-        function changeTheme(theme) {
-            document.body.className = '';
-            document.body.classList.add(theme + '-theme');
-            
-            document.querySelectorAll('.theme-option').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            document.querySelector(`[data-theme="${theme}"]`).classList.add('active');
-            
-            localStorage.setItem('theme', theme);
-        }
-
-        // Обновление настроек конфиденциальности
-        function updatePrivacySetting(type, value) {
-            console.log(`Настройка ${type} изменена на: ${value}`);
-        }
-
-        // Функция для выхода
-        async function handleLogout() {
-            try {
-                await authService.logout();
-            } catch (error) {
-                console.error('Ошибка при выходе:', error);
-            } finally {
-                window.location.href = '/';
-            }
-        }
-
-        // Проверка аутентификации при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            if (!authService.isAuthenticated()) {
-                window.location.href = '/login';
+            if (!contactName) {
+                showToast('Ошибка', 'Введите имя контакта', 'error');
                 return;
             }
+            
+            if (!contactLogin) {
+                showToast('Ошибка', 'Введите логин пользователя', 'error');
+                return;
+            }
+            
+            showToast('Контакт добавлен!', `${contactName} добавлен в контакты`, 'success');
+            closeAddContactModal();
+        });
 
-            // Загружаем тему
+        // Остальные функции
+        function toggleSettings() {
+            document.getElementById('settingsDropdown').classList.toggle('show');
+        }
+
+        function updatePrivacySetting(setting, value) {
+            // Настройки сохраняются без уведомлений
+            console.log(`[PRIVACY_SETTING] ${setting}: ${value}`);
+        }
+
+        function handleLogout() {
+            console.log(`[LOGOUT] user: {{ user_name }} ({{ user_login }})`);
+            
+            showToast('Выход выполнен', '', 'success');
+            setTimeout(() => window.location.href = '/', 1500);
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             changeTheme(savedTheme);
-
-            setInterval(() => {
-                if (!authService.isAuthenticated()) {
-                    window.location.href = '/login';
-                }
-            }, 60000);
+            
+            console.log(`[INIT] user: {{ user_name }} ({{ user_login }}), theme: ${savedTheme}`);
         });
     </script>
 </body>
