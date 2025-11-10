@@ -3,7 +3,7 @@ class AuthService {
         this.isRefreshing = false;
         this.failedQueue = [];
         this.is_login = false;
-        // Токены теперь хранятся в куках, а не в localStorage
+        // Полностью убираем localStorage
     }
 
     async login(json_data) {
@@ -13,16 +13,10 @@ class AuthService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(json_data),
-            credentials: 'include'  // Важно: отправляем куки
+            credentials: 'include'
         });
 
         if (response.ok) {
-            const data = await response.json();
-            
-            // Сохраняем время истечения в localStorage (это можно оставить)
-            this.setTokenExpiry('access', data.access_expires_in);
-            this.setTokenExpiry('refresh', data.refresh_expires_in);
-            
             this.is_login = true;
             return true;
         } else {
@@ -39,16 +33,12 @@ class AuthService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(json_data),
-            credentials: 'include'  // Важно: отправляем куки
+            credentials: 'include'
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            // Сохраняем время истечения
-            this.setTokenExpiry('access', data.access_expires_in);
-            this.setTokenExpiry('refresh', data.refresh_expires_in);
-            
             this.is_login = true;
             return true;
         } else {
@@ -56,20 +46,7 @@ class AuthService {
         }
     }
 
-    // Эти методы больше не нужны для установки токенов, но оставим для времени истечения
-    setTokenExpiry(tokenType, expiresIn) {
-        const expiryTime = Date.now() + (expiresIn * 1000);
-        localStorage.setItem(`${tokenType}_token_expiry`, expiryTime.toString());
-    }
-
-    isTokenExpired(tokenType) {
-        const expiry = localStorage.getItem(`${tokenType}_token_expiry`);
-        if (!expiry) return true;
-        return Date.now() >= parseInt(expiry);
-    }
-
     async refreshAccessToken() {
-        // Если уже обновляем токен, добавляем запрос в очередь
         if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
                 this.failedQueue.push({ resolve, reject });
@@ -79,41 +56,25 @@ class AuthService {
         this.isRefreshing = true;
 
         try {
-            // Проверяем, не истек ли refresh token
-            if (this.isTokenExpired('refresh')) {
-                throw new Error('REFRESH_TOKEN_EXPIRED');
-            }
-
             const response = await fetch('api/refresh', {
                 method: 'POST',
-                credentials: 'include'  // Отправляем куки с refresh token
+                credentials: 'include'
             });
 
             if (response.ok) {
-                const data = await response.json();
-                // Сервер автоматически обновит access token в куках
-                this.setTokenExpiry('access', data.access_expires_in);
-
-                // Обрабатываем очередь запросов
+                // Токен обновлен, сервер установил новую куку
                 this.failedQueue.forEach(({ resolve }) => resolve());
                 this.failedQueue = [];
-
                 return true;
             } else {
                 const errorData = await response.json();
-                
-                if (errorData.error === 'refresh_token_expired') {
-                    throw new Error('REFRESH_TOKEN_EXPIRED');
-                } else {
-                    throw new Error('REFRESH_FAILED');
-                }
+                throw new Error(errorData.error || 'REFRESH_FAILED');
             }
         } catch (error) {
-            // Обрабатываем ошибки в очереди
             this.failedQueue.forEach(({ reject }) => reject(error));
             this.failedQueue = [];
 
-            if (error.message === 'REFRESH_TOKEN_EXPIRED') {
+            if (error.message === 'REFRESH_TOKEN_EXPIRED' || error.message === 'refresh_token_expired') {
                 this.handleRefreshTokenExpired();
             }
             
@@ -125,21 +86,11 @@ class AuthService {
 
     handleRefreshTokenExpired() {
         console.log('Refresh token истек. Требуется полная переаутентификация.');
-        
-        // Очищаем данные
         this.logout();
-        
-        // Показываем пользователю сообщение
         this.showReauthenticationRequired();
-        
-        // Перенаправляем на страницу логина
-        setTimeout(() => {
-            window.location.href = '/login?reason=session_expired';
-        }, 2000);
     }
 
     showReauthenticationRequired() {
-        // Показываем красивое сообщение пользователю
         const message = document.createElement('div');
         message.style.cssText = `
             position: fixed;
@@ -156,41 +107,27 @@ class AuthService {
         document.body.appendChild(message);
         
         setTimeout(() => {
-            document.body.removeChild(message);
+            if (document.body.contains(message)) {
+                document.body.removeChild(message);
+            }
         }, 5000);
     }
 
     async makeAuthenticatedRequest(url, options = {}) {
-        // Убедимся, что отправляем куки
         options.credentials = 'include';
-
-        // Проверяем, не истек ли access token
-        if (this.isTokenExpired('access') && !this.isTokenExpired('refresh')) {
-            try {
-                await this.refreshAccessToken();
-            } catch (error) {
-                if (error.message === 'REFRESH_TOKEN_EXPIRED') {
-                    // Уже обработано в handleRefreshTokenExpired
-                    return;
-                }
-                throw error;
-            }
-        }
 
         let response = await fetch(url, options);
         
-        // Если access token истек на сервере (маловероятно, но возможно)
+        // Если access token истек, пробуем обновить
         if (response.status === 401) {
-            const errorData = await response.json();
-            
-            if (errorData.error === 'access_token_expired') {
-                if (!this.isTokenExpired('refresh')) {
-                    await this.refreshAccessToken();
-                    response = await fetch(url, options);
-                } else {
-                    this.handleRefreshTokenExpired();
-                    return;
-                }
+            try {
+                await this.refreshAccessToken();
+                // Повторяем исходный запрос с обновленным токеном
+                response = await fetch(url, options);
+            } catch (error) {
+                // Если обновление не удалось, разлогиниваем
+                this.handleRefreshTokenExpired();
+                return null;
             }
         }
 
@@ -198,32 +135,48 @@ class AuthService {
     }
 
     logout() {
-        // Отправляем запрос на сервер для добавления в черный список
+        // Отправляем запрос на сервер для logout
         fetch('api/logout', {
             method: 'POST',
-            credentials: 'include'  // Отправляем куки с токенами
+            credentials: 'include'
         }).catch(console.error);
         
-        // Очищаем локальное хранилище (только expiry данные)
+        // Очищаем состояние
         this.is_login = false;
-        localStorage.removeItem('access_token_expiry');
-        localStorage.removeItem('refresh_token_expiry');
+        
+        // Принудительно перенаправляем на главную
+        window.location.href = '/';
     }
 
-    isAuthenticated() {
-        // Теперь проверяем только по expiry времени
-        // В идеале нужно делать запрос к серверу для проверки валидности кук
-        return !this.isTokenExpired('access') || !this.isTokenExpired('refresh');
+    async isAuthenticated() {
+        try {
+            // Делаем запрос к защищенному эндпоинту для проверки аутентификации
+            const response = await fetch('/api/check-auth', {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                this.is_login = true;
+                return true;
+            } else {
+                this.is_login = false;
+                return false;
+            }
+        } catch (error) {
+            console.error('Auth check failed:', error);
+            this.is_login = false;
+            return false;
+        }
     }
 
     // Периодическая проверка состояния аутентификации
     startTokenMonitor() {
-        setInterval(() => {
-            if (this.is_login){
-                if (this.isTokenExpired('refresh')) {
+        setInterval(async () => {
+            if (this.is_login) {
+                const isAuth = await this.isAuthenticated();
+                if (!isAuth) {
                     this.handleRefreshTokenExpired();
-                } else if (this.isTokenExpired('access') && !this.isRefreshing) {
-                    this.refreshAccessToken().catch(console.error);
                 }
             }
         }, 60000); // Проверка каждую минуту
@@ -244,8 +197,7 @@ async function handleLogin(event) {
     
     const success = await authService.login({username, password});
     if (success === true) {
-        authService.is_login = true;
-        window.location.href = '/dashboard';
+        window.location.href = '/';
     } else {
         alert('Ошибка входа. Проверьте логин и пароль.');
     }
@@ -263,8 +215,10 @@ async function fetchProtectedData(url='/api/protected-data') {
     }
 }
 
-function checkAuth() {
-    if (!authService.isAuthenticated() && !window.location.pathname.includes('/login')) {
+// Функция для проверки аутентификации и перенаправления
+async function checkAuth() {
+    const isAuthenticated = await authService.isAuthenticated();
+    if (!isAuthenticated && !window.location.pathname.includes('/login')) {
         window.location.href = '/login';
     }
 }

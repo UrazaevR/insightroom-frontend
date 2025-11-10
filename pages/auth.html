@@ -647,12 +647,17 @@
         document.getElementById('confirmPassword').addEventListener('input', validatePasswords);
 
         // Проверка аутентификации при загрузке
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             setupAuthMethodSelector();
             
             // Если пользователь уже авторизован, перенаправляем на главную
-            if (authService.isAuthenticated()) {
-                window.location.href = '/cabinet';
+            try{
+                const isAuthenticated = await authService.isAuthenticated();
+                if (isAuthenticated) {
+                    window.location.href = '/cabinet';
+                }
+            } catch (error){
+                console.log('Пользователь не аутентифицирован, показываем форму входа')
             }
         });
     </script>
