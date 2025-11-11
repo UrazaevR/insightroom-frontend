@@ -96,7 +96,7 @@
                         </div>
                         <div class="compact-list">
                             {% for meeting in current_meetings %}
-                            <div class="list-item">
+                            <div class="list-item clickable" onclick="showMeetingInfo('{{ meeting.id}}')">
                                 <div class="item-main">
                                     <div class="item-header">
                                         <h3>{{ meeting.title }}</h3>
@@ -105,8 +105,8 @@
                                     <p class="item-description">{{ meeting.description }}</p>
                                 </div>
                                 <div class="item-actions">
-                                    <button type="button" class="action-btn small primary">Присоединиться</button>
-                                    <button type="button" class="action-btn small secondary">Ссылка</button>
+                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}')">Присоединиться</button>
+                                    <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
                                 </div>
                             </div>
                             {% endfor %}
@@ -134,7 +134,7 @@
                         
                         <div class="compact-list">
                             {% for meeting in all_meetings %}
-                            <div class="list-item">
+                            <div class="list-item clickable" onclick="showMeetingInfo('{{ meeting.id}}')">
                                 <div class="item-main">
                                     <div class="item-header">
                                         <h3>{{ meeting.title }}</h3>
@@ -143,8 +143,8 @@
                                     <p class="item-description">{{ meeting.description }}</p>
                                 </div>
                                 <div class="item-actions">
-                                    <button type="button" class="action-btn small primary">Присоединиться</button>
-                                    <button type="button" class="action-btn small secondary">Ссылка</button>
+                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}')">Присоединиться</button>
+                                    <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
                                 </div>
                             </div>
                             {% endfor %}
@@ -304,7 +304,7 @@
             </form>
         </div>
     </div>
-
+    <script src="{{ url_for('static', filename='JS/auth.js') }}"></script>
     <script>
         // Функция для логирования в консоль
         function logUserInput(formName, data) {
@@ -342,6 +342,28 @@
                     }
                 }, duration);
             }
+        }
+
+        //функция для показа информации о встрече
+        function showMeetingInfo(meetingId) {
+            console.log(`[MEETING_INFO] meeting.id: ${meetingId}`);
+            showToast('Информация о встрече', `ID встречи: ${meetingId}`, 4000);
+        }
+
+        //Функция для присоединения к встрече
+        function joinMeeting(meetingId) {
+            console.log(`[JOIN_MEETING] meeting.id: ${meetingId}`);
+            showToast('Присоединение', `Подключаемся к встрече: ${meetingId}`);
+        }
+        //Функция для копирования ссылки на встречу
+        function copyMeetingLink(meetingId) {
+            navigator.clipboard.writeText(`${window.location.origin}/join/${meetingId}`).then(() => {
+                console.log(`[COPY_LINK] meeting.id: ${meetingId}`);
+                showToast('Ссылка скопирована!', ``, 'success');
+            }).catch(err => {
+                console.log('Ошибка копирования', err);
+                showToast('Ошибка копирования', 'Не удалось скопировать ссылку', 'error');
+            });
         }
 
         // Функция для переключения темы
@@ -387,19 +409,33 @@
         function closeAddContactModal() { document.getElementById('addContactModal').classList.remove('show'); }
 
         // Обработчики форм
-        document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+        document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             const formData = {
-                'meeting.title': document.getElementById('meetingTitle').value,
-                'meeting.date': document.getElementById('meetingDate').value,
-                'meeting.time': document.getElementById('meetingTime').value,
-                'meeting.description': document.getElementById('meetingDescription').value || '(empty)'
+                'room.name': document.getElementById('meetingTitle').value,
+                'room.activation_time': `${document.getElementById('meetingDate').value}T${document.getElementById('meetingTime').value}`,
+                'room.description': document.getElementById('meetingDescription').value || '(empty)'
             };
-            
             logUserInput('SCHEDULE_MEETING', formData);
+            const response = await fetch('api/create-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                showToast('Встреча запланирована!', 'Данные будут обновлены', 'success');
+                logUserInput('SCHEDULE_MEETING', formData);
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                showToast('Ошбика при планировании комнаты', `${errorData.error}`, 'error')
+                console.log('ошибка при планировании комнаты', formData);
+            }
             
-            showToast('Встреча запланирована!', 'Данные будут обновлены', 'success');
             closeScheduleModal();
         });
 
@@ -417,22 +453,39 @@
             closeJoinModal();
         });
 
-        document.getElementById('createRoomForm').addEventListener('submit', function(e) {
+        document.getElementById('createRoomForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
             const data = {
                 'room.name': formData.get('room_name'),
-                'room.description': formData.get('room_description') || '(empty)'
+                'room.description': formData.get('room_description') || '(empty)',
+                'room.activation_time': 'now'
             };
             
-            logUserInput('CREATE_ROOM', data);
+            const response = await fetch('api/create-room', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                showToast('Комната создана!', 'Данные будут обновлены', 'success');
+                logUserInput('CREATE_ROOM', data);
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                showToast('Ошбика при создании комнаты', `${errorData.error}`, 'error')
+                console.log('ошибка при создании комнаты', formData);
+            }
             
-            showToast('Комната создана!', 'Данные будут обновлены', 'success');
             closeCreateRoomModal();
         });
 
-        document.getElementById('addContactForm').addEventListener('submit', function(e) {
+        document.getElementById('addContactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const contactName = document.getElementById('contactName').value.trim();
@@ -443,8 +496,6 @@
                 'contact.login': contactLogin
             };
             
-            logUserInput('ADD_CONTACT', formData);
-            
             if (!contactName) {
                 showToast('Ошибка', 'Введите имя контакта', 'error');
                 return;
@@ -454,8 +505,25 @@
                 showToast('Ошибка', 'Введите логин пользователя', 'error');
                 return;
             }
-            
-            showToast('Контакт добавлен!', `${contactName} добавлен в контакты`, 'success');
+            //Сюда написать добавление контакта.
+            const response = await fetch('api/add_contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                showToast('Контакт добавлен!', `${contactName} добавлен в контакты`, 'success');
+                logUserInput('ADD_CONTACT', formData);
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                showToast('Ошбика при добавлении контакта', `${errorData.error}`, 'error')
+                console.log('ошибка при доблении контакта auth.js', formData);
+            }
             closeAddContactModal();
         });
 
@@ -471,7 +539,7 @@
 
         function handleLogout() {
             console.log(`[LOGOUT] user: {{ user_name }} ({{ user_login }})`);
-            
+            authService.logout();
             showToast('Выход выполнен', '', 'success');
             setTimeout(() => window.location.href = '/', 1500);
         }
