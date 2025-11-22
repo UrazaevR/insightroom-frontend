@@ -8,6 +8,8 @@ class VideoConference {
         this.screenStream = null;
         this.candidateQueue = {};
         this.yourSocketId = null;
+        this.remoteStreams = {};
+        this.remoteIntervals = {}; // Для хранения интервалов проверки статуса
         
         this.init();
     }
@@ -31,14 +33,26 @@ class VideoConference {
 
     async initMedia() {
         try {
-            this.localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
+            // Для мобильных устройств используем более простые настройки
+            const constraints = {
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    frameRate: { ideal: 30 }
+                },
                 audio: {
                     echoCancellation: true,
                     noiseSuppression: true,
                     autoGainControl: true
                 }
-            });
+            };
+
+            // Проверяем, является ли устройство мобильным
+            if (this.isMobileDevice()) {
+                constraints.video.facingMode = { ideal: 'user' }; // Используем фронтальную камеру
+            }
+
+            this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
             
             const localVideo = document.getElementById('localVideo');
             localVideo.srcObject = this.localStream;
@@ -53,6 +67,11 @@ class VideoConference {
             this.showError('Не удалось получить доступ к камере/микрофону');
             document.getElementById('localVideoPlaceholder').style.display = 'flex';
         }
+    }
+
+    // Проверка мобильного устройства
+    isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
     initSocket() {
@@ -129,9 +148,7 @@ class VideoConference {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' }
-            ],
-            // Добавляем настройки для лучшей совместимости
-            sdpSemantics: 'unified-plan'
+            ]
         });
 
         // Добавляем локальный поток
@@ -155,13 +172,13 @@ class VideoConference {
 
         peerConnection.ontrack = (event) => {
             console.log('Получен удаленный поток от:', userName);
-            console.log('Типы треков в потоке:');
-            event.streams[0].getTracks().forEach(track => {
-                console.log(' -', track.kind, track.id, track.enabled ? 'enabled' : 'disabled');
-            });
             
             if (event.streams && event.streams[0]) {
+                this.remoteStreams[userId] = event.streams[0];
                 this.addRemoteVideo(userId, userName, event.streams[0]);
+                
+                // Запускаем отслеживание статуса для этого пользователя
+                this.startRemoteStatusMonitoring(userId, event.streams[0]);
             }
         };
 
@@ -183,15 +200,6 @@ class VideoConference {
             }
         };
 
-        peerConnection.oniceconnectionstatechange = () => {
-            console.log(`ICE состояние для ${userName}:`, peerConnection.iceConnectionState);
-        };
-
-        // Обработчик для отслеживания переговоров
-        peerConnection.onsignalingstatechange = () => {
-            console.log(`Signaling состояние для ${userName}:`, peerConnection.signalingState);
-        };
-
         this.peerConnections[userId] = peerConnection;
         this.candidateQueue[userId] = [];
         
@@ -199,6 +207,59 @@ class VideoConference {
         setTimeout(() => this.createOffer(userId), 500);
         
         return peerConnection;
+    }
+
+    // Отслеживание статуса удаленного участника
+    startRemoteStatusMonitoring(userId, stream) {
+        // Останавливаем предыдущий интервал, если был
+        if (this.remoteIntervals[userId]) {
+            clearInterval(this.remoteIntervals[userId]);
+        }
+
+        // Создаем новый интервал для проверки статуса
+        this.remoteIntervals[userId] = setInterval(() => {
+            this.updateRemoteStatusIndicators(userId, stream);
+        }, 1000);
+
+        // Первоначальное обновление
+        this.updateRemoteStatusIndicators(userId, stream);
+    }
+
+    // Обновление индикаторов статуса удаленного участника
+    updateRemoteStatusIndicators(userId, stream) {
+        const audioTracks = stream.getAudioTracks();
+        const videoTracks = stream.getVideoTracks();
+        
+        const audioEnabled = audioTracks.length > 0 && audioTracks[0].enabled;
+        const videoEnabled = videoTracks.length > 0 && videoTracks[0].enabled;
+        
+        const audioIndicator = document.getElementById(`audio-${userId}`);
+        const videoIndicator = document.getElementById(`video-${userId}`);
+        
+        if (audioIndicator) {
+            audioIndicator.className = `status-indicator ${audioEnabled ? 'audio-on' : 'audio-off muted'}`;
+        }
+        
+        if (videoIndicator) {
+            videoIndicator.className = `status-indicator ${videoEnabled ? 'video-on' : 'video-off muted'}`;
+        }
+        
+        // Обновляем отображение видео
+        const participantElement = document.getElementById(`participant-${userId}`);
+        if (participantElement) {
+            const videoElement = participantElement.querySelector('.remote-video');
+            const placeholder = participantElement.querySelector('.video-placeholder');
+            
+            if (videoElement && placeholder) {
+                if (videoEnabled) {
+                    placeholder.style.display = 'none';
+                    videoElement.style.display = 'block';
+                } else {
+                    placeholder.style.display = 'flex';
+                    videoElement.style.display = 'none';
+                }
+            }
+        }
     }
 
     async createOffer(userId) {
@@ -210,38 +271,18 @@ class VideoConference {
             }
             
             console.log('Создаем OFFER для:', userId);
-            
-            // Добавляем настройки для лучшей поддержки аудио
-            const offerOptions = {
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: true
-            };
-            
-            const offer = await peerConnection.createOffer(offerOptions);
-            
-            // Устанавливаем кодек предпочтения перед установкой локального описания
-            const updatedOffer = {
-                type: offer.type,
-                sdp: this.preferAudioCodec(offer.sdp)
-            };
-            
-            await peerConnection.setLocalDescription(updatedOffer);
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
             
             console.log('OFFER создан, отправляем через сокет:', userId);
             this.socket.emit('webrtc-offer', {
                 to: userId,
-                offer: updatedOffer
+                offer: offer
             });
             
         } catch (error) {
             console.error('Ошибка создания offer:', error);
         }
-    }
-
-    // Функция для настройки предпочтений аудио кодеков
-    preferAudioCodec(sdp) {
-        // Предпочитаем Opus кодек для лучшего качества звука
-        return sdp.replace(/a=rtpmap:111 opus\/48000\/2/g, 'a=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10;useinbandfec=1');
     }
 
     async handleOffer(offer, fromUserId) {
@@ -254,37 +295,13 @@ class VideoConference {
         }
 
         try {
-            console.log('Устанавливаем remote description (OFFER) для:', fromUserId);
+            await peerConnection.setRemoteDescription(offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
             
-            // Обновляем SDP для лучшей поддержки аудио
-            const updatedOffer = {
-                type: offer.type,
-                sdp: this.preferAudioCodec(offer.sdp)
-            };
-            
-            await peerConnection.setRemoteDescription(updatedOffer);
-            
-            console.log('Создаем ANSWER для:', fromUserId);
-            
-            const answerOptions = {
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: true
-            };
-            
-            const answer = await peerConnection.createAnswer(answerOptions);
-            
-            // Обновляем SDP ответа
-            const updatedAnswer = {
-                type: answer.type,
-                sdp: this.preferAudioCodec(answer.sdp)
-            };
-            
-            await peerConnection.setLocalDescription(updatedAnswer);
-            
-            console.log('Отправляем ANSWER через сокет для:', fromUserId);
             this.socket.emit('webrtc-answer', {
                 to: fromUserId,
-                answer: updatedAnswer
+                answer: answer
             });
             
             this.processQueuedCandidates(fromUserId);
@@ -296,27 +313,12 @@ class VideoConference {
 
     async handleAnswer(answer, fromUserId) {
         console.log('Обрабатываем ANSWER от:', fromUserId);
-        console.log('Текущее signaling state:', this.peerConnections[fromUserId]?.signalingState);
         
         try {
             const peerConnection = this.peerConnections[fromUserId];
             if (peerConnection) {
-                // Проверяем состояние перед установкой remote description
-                if (peerConnection.signalingState === 'have-local-offer') {
-                    console.log('Устанавливаем remote description (ANSWER) для:', fromUserId);
-                    
-                    // Обновляем SDP ответа
-                    const updatedAnswer = {
-                        type: answer.type,
-                        sdp: this.preferAudioCodec(answer.sdp)
-                    };
-                    
-                    await peerConnection.setRemoteDescription(updatedAnswer);
-                    
-                    this.processQueuedCandidates(fromUserId);
-                } else {
-                    console.log('Пропускаем установку ANSWER, неверное состояние:', peerConnection.signalingState);
-                }
+                await peerConnection.setRemoteDescription(answer);
+                this.processQueuedCandidates(fromUserId);
             } else {
                 console.error('PeerConnection не найден для answer от:', fromUserId);
             }
@@ -343,7 +345,7 @@ class VideoConference {
                     this.candidateQueue[fromUserId] = [];
                 }
                 this.candidateQueue[fromUserId].push(candidate);
-                console.log('ICE кандидат добавлен в буфер для:', fromUserId, '(в очереди:', this.candidateQueue[fromUserId].length + ')');
+                console.log('ICE кандидат добавлен в буфер для:', fromUserId);
             }
         } catch (error) {
             console.error('Ошибка добавления ICE кандидата:', error);
@@ -375,9 +377,10 @@ class VideoConference {
             return;
         }
         
-        if (document.getElementById(`participant-${userId}`)) {
-            console.log('Видео уже существует для:', userId);
-            return;
+        // Удаляем существующий элемент если есть
+        const existingElement = document.getElementById(`participant-${userId}`);
+        if (existingElement) {
+            existingElement.remove();
         }
         
         const initials = userName ? userName.slice(0, 2).toUpperCase() : 'УЧ';
@@ -400,8 +403,8 @@ class VideoConference {
                         <span>${userName}</span>
                     </span>
                     <div class="participant-status">
-                        <div class="status-indicator audio-on"></div>
-                        <div class="status-indicator video-on"></div>
+                        <div class="status-indicator audio-on" id="audio-${userId}"></div>
+                        <div class="status-indicator video-on" id="video-${userId}"></div>
                     </div>
                 </div>
                 <div class="audio-controls">
@@ -420,14 +423,21 @@ class VideoConference {
         console.log('Устанавливаем srcObject для удаленного видео');
         videoElement.srcObject = stream;
         
-        // Убедимся, что звук включен по умолчанию
-        videoElement.muted = false;
-        videoElement.volume = 1.0;
+        // Для мобильных устройств добавляем обработчики жестов
+        if (this.isMobileDevice()) {
+            this.setupMobileVideoControls(videoElement, audioToggle, audioIcon);
+        }
         
         // Обработчики для видео
         videoElement.onloadedmetadata = () => {
             console.log('Метаданные удаленного видео загружены для:', userName);
-            videoElement.play().catch(e => console.error('Ошибка воспроизведения:', e));
+            videoElement.play().catch(e => {
+                console.error('Ошибка автовоспроизведения:', e);
+                // Для мобильных устройств показываем кнопку воспроизведения
+                if (this.isMobileDevice()) {
+                    this.showMobilePlayButton(videoElement, userName);
+                }
+            });
         };
         
         videoElement.onloadeddata = () => {
@@ -456,23 +466,84 @@ class VideoConference {
             });
         }
         
-        // Проверим аудио треки
-        const audioTracks = stream.getAudioTracks();
-        console.log('Аудио треки в потоке:', audioTracks.length);
-        audioTracks.forEach(track => {
-            console.log('Аудио трек:', track.id, track.enabled ? 'enabled' : 'disabled', track.muted ? 'muted' : 'unmuted');
-            track.onmute = () => console.log('Аудио трек muted:', track.id);
-            track.onunmute = () => console.log('Аудио трек unmuted:', track.id);
-        });
-        
         participantsGrid.appendChild(participantCard);
         this.updateParticipantCount();
         
         console.log('Удаленное видео добавлено в DOM для:', userName);
     }
 
+    // Настройка элементов управления для мобильных устройств
+    setupMobileVideoControls(videoElement, audioToggle, audioIcon) {
+        let tapTimer;
+        let tapCount = 0;
+        
+        videoElement.addEventListener('click', (e) => {
+            tapCount++;
+            
+            if (tapCount === 1) {
+                tapTimer = setTimeout(() => {
+                    // Одинарное нажатие - переключение полноэкранного режима
+                    if (videoElement.requestFullscreen) {
+                        if (!document.fullscreenElement) {
+                            videoElement.requestFullscreen();
+                        } else {
+                            document.exitFullscreen();
+                        }
+                    }
+                    tapCount = 0;
+                }, 300);
+            } else if (tapCount === 2) {
+                // Двойное нажатие - переключение звука
+                clearTimeout(tapTimer);
+                videoElement.muted = !videoElement.muted;
+                audioIcon.textContent = videoElement.muted ? '🔇' : '🔊';
+                tapCount = 0;
+            }
+        });
+        
+        // Сбрасываем счетчик нажатий через короткое время
+        setTimeout(() => {
+            tapCount = 0;
+        }, 400);
+    }
+
+    // Показать кнопку воспроизведения для мобильных устройств
+    showMobilePlayButton(videoElement, userName) {
+        const playButton = document.createElement('button');
+        playButton.className = 'mobile-play-button';
+        playButton.innerHTML = '▶️ Воспроизвести';
+        playButton.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        `;
+        
+        playButton.addEventListener('click', () => {
+            videoElement.play()
+                .then(() => playButton.remove())
+                .catch(e => console.error('Ошибка ручного воспроизведения:', e));
+        });
+        
+        videoElement.parentElement.style.position = 'relative';
+        videoElement.parentElement.appendChild(playButton);
+    }
+
     removePeerConnection(userId) {
         console.log('Удаление PeerConnection для:', userId);
+        
+        // Останавливаем интервал отслеживания статуса
+        if (this.remoteIntervals[userId]) {
+            clearInterval(this.remoteIntervals[userId]);
+            delete this.remoteIntervals[userId];
+        }
         
         if (this.peerConnections[userId]) {
             this.peerConnections[userId].close();
@@ -481,6 +552,10 @@ class VideoConference {
         
         if (this.candidateQueue[userId]) {
             delete this.candidateQueue[userId];
+        }
+        
+        if (this.remoteStreams[userId]) {
+            delete this.remoteStreams[userId];
         }
         
         const participantElement = document.getElementById(`participant-${userId}`);
