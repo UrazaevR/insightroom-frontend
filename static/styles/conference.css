@@ -12,6 +12,7 @@
     max-width: 1400px;
     margin-left: auto;
     margin-right: auto;
+    padding: 20px;
 }
 
 .participant-card {
@@ -23,12 +24,17 @@
     aspect-ratio: 16/9;
     transition: all 0.3s ease;
     border: 3px solid transparent;
+    animation: slideInUp 0.3s ease;
 }
 
 /* Подсветка когда пользователь говорит */
 .participant-card.speaking {
     border-color: #4CAF50;
     box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
+}
+
+.participant-card:hover {
+    transform: translateY(-2px);
 }
 
 .video-container {
@@ -45,6 +51,9 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 /* Заглушка с аватаром */
@@ -55,6 +64,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 
 .placeholder-content {
@@ -72,6 +84,7 @@
     font-weight: bold;
     font-size: 48px;
     background: #4ECDC4;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .participant-info {
@@ -106,6 +119,7 @@
     font-weight: bold;
     font-size: 12px;
     flex-shrink: 0;
+    background: #4ECDC4;
 }
 
 .participant-status {
@@ -123,6 +137,22 @@
 }
 
 .status-indicator.muted {
+    background: #f44336;
+}
+
+.status-indicator.audio-on {
+    background: #4CAF50;
+}
+
+.status-indicator.audio-off {
+    background: #f44336;
+}
+
+.status-indicator.video-on {
+    background: #4CAF50;
+}
+
+.status-indicator.video-off {
     background: #f44336;
 }
 
@@ -153,6 +183,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    font-size: 20px;
 }
 
 .control-btn:hover {
@@ -162,14 +193,17 @@
 
 .control-btn.muted {
     background: #f44336 !important;
+    color: white;
 }
 
 .control-btn.active {
     background: #667eea !important;
+    color: white;
 }
 
 .control-btn.danger {
     background: #f44336 !important;
+    color: white;
 }
 
 .control-btn.danger:hover {
@@ -210,25 +244,333 @@
     }
 }
 
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Анимированный фон */
+.animated-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    z-index: -1;
+}
+
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Header стили */
+.header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 15px 0;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 100;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.meeting-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 8px 15px;
+    border-radius: 20px;
+}
+
+/* Дополнительные стили для видеоконференций */
+.user-video[style*="display: none"] + .video-placeholder {
+    display: flex !important;
+}
+
+.remote-video[style*="display: none"] + .video-placeholder {
+    display: flex !important;
+}
+
+/* Адаптивность для мобильных устройств */
 @media (max-width: 768px) {
     .participants-grid {
         grid-template-columns: 1fr;
         gap: 10px;
+        padding: 10px;
     }
     
     .control-panel {
         bottom: 10px;
-        padding: 10px 20px;
+        padding: 10px 15px;
     }
     
     .control-btn {
         width: 45px;
         height: 45px;
+        font-size: 18px;
+    }
+    
+    .meeting-info {
+        font-size: 12px;
+        flex-direction: column;
+        gap: 5px;
     }
     
     .user-avatar.large {
         width: 80px;
         height: 80px;
         font-size: 32px;
+    }
+    
+    .participant-info {
+        padding: 8px 10px;
+    }
+    
+    .participant-name {
+        font-size: 12px;
+    }
+    
+    .conference-container {
+        padding: 10px;
+    }
+    
+    .media-notification {
+        top: 10px;
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .participants-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .control-panel {
+        gap: 10px;
+        padding: 8px 12px;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .container {
+        padding: 0 15px;
+    }
+    
+    .logo-link {
+        font-size: 20px;
+    }
+}
+
+/* Стили для состояний загрузки */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Стили для отключенных кнопок */
+.control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.control-btn:disabled:hover {
+    background: #f5f5f5 !important;
+}
+
+/* Кастомный скроллбар */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* Поддержка prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    .animated-bg {
+        animation: none;
+    }
+    
+    .participant-card {
+        animation: none;
+    }
+    
+    .media-notification {
+        animation: none;
+    }
+    
+    .control-btn:hover {
+        transform: none;
+    }
+    
+    .participant-card:hover {
+        transform: none;
+    }
+}
+
+/* Темная тема (опционально) */
+@media (prefers-color-scheme: dark) {
+    .participant-card {
+        background: rgba(45, 45, 45, 0.95);
+    }
+    
+    .control-panel {
+        background: rgba(45, 45, 45, 0.95);
+    }
+    
+    .control-btn {
+        background: #333;
+        color: white;
+    }
+    
+    .control-btn:hover {
+        background: #444;
+    }
+    
+    .media-notification {
+        background: rgba(45, 45, 45, 0.95);
+        color: white;
+    }
+    
+    .header {
+        background: rgba(45, 45, 45, 0.95);
+    }
+    
+    .logo-link {
+        color: white;
+    }
+    
+    .meeting-info {
+        background: rgba(255, 255, 255, 0.1);
+        color: #ccc;
+    }
+}
+
+/* Стили для полноэкранного режима */
+.participant-card.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    border-radius: 0;
+    aspect-ratio: unset;
+}
+
+/* Индикатор подключения */
+.connection-status {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4CAF50;
+    z-index: 1002;
+}
+
+.connection-status.connecting {
+    background: #FFC107;
+    animation: pulse 1.5s infinite;
+}
+
+.connection-status.disconnected {
+    background: #f44336;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Стили для сетки участников в разных режимах */
+.participants-grid.single-view .participant-card {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.participants-grid.speaker-view .participant-card.local-user {
+    grid-column: 1 / -1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Улучшенная доступность */
+.control-btn:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.participant-card:focus-within {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Высококонтрастный режим */
+@media (prefers-contrast: high) {
+    .participant-card {
+        border: 2px solid #000;
+    }
+    
+    .status-indicator {
+        border: 1px solid #000;
+    }
+    
+    .control-btn {
+        border: 1px solid #000;
     }
 }

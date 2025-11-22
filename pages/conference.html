@@ -7,17 +7,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/conference.css') }}">
 </head>
-<body>
+<body data-user-name="{{ user_name }}">
     <div class="animated-bg"></div>
     
     <header class="header">
         <div class="container">
             <div class="logo">
-                <a href="../index.html" class="logo-link">Insight Room</a>
+                <a href="/" class="logo-link">Insight Room</a>
             </div>
             <nav class="nav">
                 <div class="meeting-info">
-                    <span id="meetingId">ID: Загрузка...</span>
+                    <span id="meetingId">ID: {{ room_url }}</span>
                     <span id="participantCount">👥 1</span>
                 </div>
             </nav>
@@ -30,12 +30,20 @@
                 <!-- Локальный пользователь -->
                 <div class="participant-card local-user">
                     <div class="video-container">
-                        <video id="localVideo" class="user-video" autoplay muted></video>
+                        <video id="localVideo" class="user-video" autoplay muted playsinline></video>
+                        <div class="video-placeholder" id="localVideoPlaceholder" style="display: none;">
+                            <div class="placeholder-content">
+                                <div class="user-avatar large" id="localUserAvatar">{{ user_name[:2]|upper if user_name else 'У' }}</div>
+                            </div>
+                        </div>
                         <div class="participant-info">
-                            <span class="participant-name" id="localUserName">Загрузка...</span>
+                            <span class="participant-name">
+                                <div class="user-avatar" id="localUserAvatarSmall">{{ user_name[:2]|upper if user_name else 'У' }}</div>
+                                <span id="localUserName">{{ user_name or 'Участник' }}</span>
+                            </span>
                             <div class="participant-status">
-                                <div class="status-indicator" id="localAudioStatus"></div>
-                                <div class="status-indicator" id="localVideoStatus"></div>
+                                <div class="status-indicator audio-on" id="localAudioStatus"></div>
+                                <div class="status-indicator video-on" id="localVideoStatus"></div>
                             </div>
                         </div>
                     </div>
@@ -45,13 +53,23 @@
 
         <!-- Панель управления -->
         <div class="control-panel">
-            <button class="control-btn" id="toggleAudio" title="Микрофон">🎤</button>
-            <button class="control-btn" id="toggleVideo" title="Камера">📹</button>
-            <button class="control-btn" id="toggleScreen" title="Поделиться экраном">🖥️</button>
-            <button class="control-btn danger" id="leaveCall" title="Покинуть встречу">📞</button>
+            <button class="control-btn" id="toggleAudio" title="Микрофон">
+                <span class="control-icon">🎤</span>
+            </button>
+            <button class="control-btn" id="toggleVideo" title="Камера">
+                <span class="control-icon">📹</span>
+            </button>
+            <button class="control-btn" id="toggleScreen" title="Поделиться экраном">
+                <span class="control-icon">🖥️</span>
+            </button>
+            <button class="control-btn danger" id="leaveCall" title="Покинуть встречу">
+                <span class="control-icon">📞</span>
+            </button>
         </div>
     </main>
 
+    <!-- SocketIO клиент -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/conference.js') }}"></script>
 </body>
 </html>

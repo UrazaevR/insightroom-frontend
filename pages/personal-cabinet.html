@@ -353,11 +353,11 @@
         //Функция для присоединения к встрече
         function joinMeeting(meetingId) {
             console.log(`[JOIN_MEETING] meeting.id: ${meetingId}`);
-            showToast('Присоединение', `Подключаемся к встрече: ${meetingId}`);
+            window.open(`${window.location.origin}/conference/${meetingId}`)
         }
         //Функция для копирования ссылки на встречу
         function copyMeetingLink(meetingId) {
-            navigator.clipboard.writeText(`${window.location.origin}/join/${meetingId}`).then(() => {
+            navigator.clipboard.writeText(`${window.location.origin}/conference/${meetingId}`).then(() => {
                 console.log(`[COPY_LINK] meeting.id: ${meetingId}`);
                 showToast('Ссылка скопирована!', ``, 'success');
             }).catch(err => {
