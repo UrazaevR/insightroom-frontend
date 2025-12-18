@@ -534,21 +534,30 @@
         }
 
         // Функция для удаления встречи
-        function deleteMeeting(meetingId) {
+        async function deleteMeeting(meetingId) {
             console.log(`[DELETE_MEETING] meeting.id: ${meetingId}`);
-            showToast('Встреча удалена', '', 'success');
             
-            // Закрываем выпадающее меню
-            const dropdown = document.getElementById(`dropdown-${meetingId}`);
-            if (dropdown) dropdown.classList.remove('show');
+            const response = await fetch('api/delete-room', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({'room.id': meetingId}),
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                showToast('Встреча удалена', '', 'success');
             
-            // Здесь нужно добавить AJAX запрос для удаления встречи
-            // fetch(`/api/delete_meeting/${meetingId}`, { method: 'DELETE' })
-            //   .then(response => {
-            //       if (response.ok) {
-            //           window.location.reload();
-            //       }
-            //   });
+                // Закрываем выпадающее меню
+                const dropdown = document.getElementById(`dropdown-${meetingId}`);
+                if (dropdown) dropdown.classList.remove('show');
+                window.location.reload()
+            } else {
+                const errorData = await response.json();
+                showToast('Ошибка при удалении комнаты', `${errorData.error}`, 'error');
+                console.log('Ошибка при удалении комнаты', formData);
+            }
         }
 
         // Функции для управления модальными окнами
@@ -650,17 +659,27 @@
         }
 
         // Функция для удаления контакта
-        function deleteContact(contactId, contactName) {
+        async function deleteContact(contactId, contactName) {
             if (confirm(`Вы уверены, что хотите удалить контакт "${contactName}"?`)) {
                 console.log(`[DELETE_CONTACT] contact.id: ${contactId}, contact.name: ${contactName}`);
-                showToast('Контакт удален', `Контакт "${contactName}" удален`, 'success');
-                // Здесь нужно добавить AJAX запрос для удаления контакта
-                // fetch(`/api/delete_contact/${contactId}`, { method: 'DELETE' })
-                //   .then(response => {
-                //       if (response.ok) {
-                //           window.location.reload();
-                //       }
-                //   });
+
+                const response = await fetch('api/delete-contact', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({'contactId': contactId}),
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    showToast('Контакт удален', `Контакт "${contactName}" удален`, 'success');
+                    window.location.reload()
+                } else {
+                    const errorData = await response.json();
+                    showToast('Ошибка при удалении контакта', `${errorData.error}`, 'error');
+                    console.log('Ошибка при удалении контакта', formData);
+                }
             }
         }
 
