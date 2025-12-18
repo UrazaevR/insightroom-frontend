@@ -394,15 +394,9 @@
             <form id="editContactForm" class="modal-form">
                 <input type="hidden" id="editContactId" value="">
                 <div class="form-group">
-                    <label class="form-label">Имя контакта</label>
+                    <label class="form-label">Новое имя контакта</label>
                     <input type="text" class="form-input" id="editContactName" placeholder="Введите имя контакта" required>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Логин пользователя</label>
-                    <input type="text" class="form-input" id="editContactLogin" placeholder="Введите логин пользователя" required>
-                </div>
-                
                 <div class="button-group">
                     <button type="submit" class="modal-btn">Сохранить изменения</button>
                 </div>
@@ -636,7 +630,6 @@
             
             document.getElementById('editContactId').value = contactId;
             document.getElementById('editContactName').value = decodedName;
-            document.getElementById('editContactLogin').value = decodedLogin;
             openModal('editContactModal');
             
             console.log(`[EDIT_CONTACT_OPEN] id: ${contactId}, name: "${decodedName}", login: "${decodedLogin}"`);
@@ -797,23 +790,26 @@
             const contactId = document.getElementById('editContactId').value;
             const formData = {
                 'contact.id': contactId,
-                'contact.name': document.getElementById('editContactName').value,
-                'contact.login': document.getElementById('editContactLogin').value
+                'contact.name': document.getElementById('editContactName').value
             };
             
             console.log(`[EDIT_CONTACT]`, formData);
             showToast('Изменения сохранены', 'Данные контакта обновлены', 'success');
             
-            // Здесь нужно добавить AJAX запрос для сохранения изменений
-            // fetch('/api/edit_contact', {
-            //     method: 'PUT',
-            //     headers: {'Content-Type': 'application/json'},
-            //     body: JSON.stringify(formData)
-            // }).then(response => {
-            //     if (response.ok) {
-            //         window.location.reload();
-            //     }
-            // });
+            const response = await fetch('/api/edit_contact', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                showToast('Изменения сохранены', 'Данные контакта обновлены', 'success');
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                showToast('Ошибка при изменении контакта', `${errorData.error}`, 'error');
+                console.log('Ошибка при изменении контакта', formData);
+            }
             
             closeEditContactModal();
         });

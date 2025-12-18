@@ -3,7 +3,6 @@ class AuthService {
         this.isRefreshing = false;
         this.failedQueue = [];
         this.is_login = false;
-        // Полностью убираем localStorage
     }
 
     async login(json_data) {
@@ -200,18 +199,6 @@ async function handleLogin(event) {
         window.location.href = '/';
     } else {
         alert('Ошибка входа. Проверьте логин и пароль.');
-    }
-}
-
-async function fetchProtectedData(url='/api/protected-data') {
-    try {
-        const response = await authService.makeAuthenticatedRequest(url);
-        if (response && response.ok) {
-            const data = await response.json();
-            return data;
-        }
-    } catch (error) {
-        console.error('Ошибка при получении данных:', error);
     }
 }
 
