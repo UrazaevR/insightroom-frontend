@@ -96,17 +96,44 @@
                         </div>
                         <div class="compact-list">
                             {% for meeting in current_meetings %}
-                            <div class="list-item clickable" onclick="showMeetingInfo('{{ meeting.id}}')">
-                                <div class="item-main">
+                            <div class="list-item" data-meeting-id="{{ meeting.id }}" data-date="{{ meeting.date }}" data-time="{{ meeting.time }}">
+                                <div class="item-main clickable" onclick="showMeetingInfo('{{ meeting.id}}')">
                                     <div class="item-header">
-                                        <h3>{{ meeting.title }}</h3>
-                                        <span class="status-badge">{{ meeting.status }}</span>
+                                        <div class="item-title-wrapper">
+                                            <h3 class="item-title" title="{{ meeting.title }}">{{ meeting.title }}</h3>
+                                            <span class="status-badge">{{ meeting.status }}</span>
+                                        </div>
+                                        {% if meeting.description %}
+                                        <p class="item-description" title="{{ meeting.description }}">
+                                            {{ meeting.description[:40] }}{% if meeting.description|length > 40 %}...{% endif %}
+                                        </p>
+                                        {% endif %}
                                     </div>
-                                    <p class="item-description">{{ meeting.description }}</p>
                                 </div>
-                                <div class="item-actions">
-                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}')">Присоединиться</button>
-                                    <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
+                                <div class="item-actions horizontal">
+                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}', event)" title="Присоединиться к встрече">
+                                        Присоединиться
+                                    </button>
+                                    <button type="button" class="action-btn small icon-btn" onclick="copyMeetingLink('{{ meeting.id }}', event)" title="Копировать ссылку">
+                                        Ссылка
+                                    </button>
+                                    
+                                    <!-- Три точки с выпадающим меню -->
+                                    <div class="meeting-actions-dropdown">
+                                        <button class="dots-btn" onclick="toggleMeetingActions('{{ meeting.id }}', event)">⋮</button>
+                                        <div class="dropdown-menu" id="dropdown-{{ meeting.id }}">
+                                            <button class="dropdown-item" 
+                                                    data-meeting-id="{{ meeting.id }}"
+                                                    data-meeting-title="{{ meeting.title }}"
+                                                    data-meeting-description="{{ meeting.description if meeting.description else '' }}"
+                                                    onclick="openEditMeetingModalFromButton(this)">
+                                                Изменить
+                                            </button>
+                                            <button class="dropdown-item delete" onclick="confirmDeleteMeeting('{{ meeting.id }}', '{{ meeting.title }}')">
+                                                Удалить
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             {% endfor %}
@@ -134,17 +161,28 @@
                         
                         <div class="compact-list">
                             {% for meeting in all_meetings %}
-                            <div class="list-item clickable" onclick="showMeetingInfo('{{ meeting.id}}')">
-                                <div class="item-main">
+                            <div class="list-item" data-meeting-id="{{ meeting.id }}" data-date="{{ meeting.date }}" data-time="{{ meeting.time }}">
+                                <div class="item-main clickable" onclick="showMeetingInfo('{{ meeting.id}}', event)">
                                     <div class="item-header">
-                                        <h3>{{ meeting.title }}</h3>
-                                        <span class="status-badge">{{ meeting.status }}</span>
+                                        <div class="item-title-wrapper">
+                                            <h3 class="item-title" title="{{ meeting.title }}">{{ meeting.title }}</h3>
+                                            <span class="status-badge">{{ meeting.status }}</span>
+                                        </div>
+                                        {% if meeting.description %}
+                                        <p class="item-description" title="{{ meeting.description }}">
+                                            {{ meeting.description[:40] }}{% if meeting.description|length > 40 %}...{% endif %}
+                                        </p>
+                                        {% endif %}
                                     </div>
-                                    <p class="item-description">{{ meeting.description }}</p>
                                 </div>
-                                <div class="item-actions">
-                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}')">Присоединиться</button>
-                                    <button type="button" class="action-btn small secondary" onclick="copyMeetingLink('{{ meeting.id }}')">Ссылка</button>
+                                <div class="item-actions horizontal">
+                                    <button type="button" class="action-btn small primary" onclick="joinMeeting('{{ meeting.id}}', event)" title="Присоединиться к встрече">
+                                        Присоединиться
+                                    </button>
+                                    <button type="button" class="action-btn small icon-btn" onclick="copyMeetingLink('{{ meeting.id }}', event)" title="Копировать ссылку">
+                                        Ссылка
+                                    </button>
+                                    <!-- Троеточие УДАЛЕНО из "Все встречи" -->
                                 </div>
                             </div>
                             {% endfor %}
@@ -162,7 +200,7 @@
                         <div class="section-header">
                             <div class="section-title">
                                 <img src="{{ url_for('static', filename='images/actions-icon.png') }}" alt="Действия" class="section-icon">
-                                <h3>Быстрый доступ</h3>
+                                <h3>Быстрые функции</h3>
                             </div>
                         </div>
                         <div class="quick-actions-compact">
@@ -192,6 +230,10 @@
                                 <div class="contact-info">
                                     <span class="contact-name">{{ contact.name }}</span>
                                     <span class="contact-login">{{ contact.login }}</span>
+                                </div>
+                                <div class="contact-actions">
+                                    <button type="button" class="contact-edit-btn" onclick="openEditContactModal('{{ contact.id }}', '{{ contact.name }}', '{{ contact.login }}')">✎</button>
+                                    <button type="button" class="contact-delete-btn" onclick="deleteContact('{{ contact.id }}', '{{ contact.name }}')">✕</button>
                                 </div>
                             </div>
                             {% endfor %}
@@ -241,6 +283,44 @@
                 </div>
                 
                 <button type="submit" class="modal-btn">Запланировать встречу</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="editMeetingModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Изменить встречу</h2>
+                <button class="close-btn" onclick="closeEditMeetingModal()">×</button>
+            </div>
+            <form id="editMeetingForm" class="modal-form">
+                <input type="hidden" id="editMeetingId" value="">
+                <div class="form-group">
+                    <label class="form-label">Название встречи</label>
+                    <input type="text" class="form-input" id="editMeetingTitle" placeholder="Введите название встречи" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Дата</label>
+                        <input type="date" class="form-input" id="editMeetingDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Время</label>
+                        <input type="time" class="form-input" id="editMeetingTime">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Описание (необязательно)</label>
+                    <textarea class="form-textarea" id="editMeetingDescription" placeholder="О чем будет встреча..."></textarea>
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" class="modal-btn danger-btn" onclick="deleteMeetingFromModal()">Удалить встречу</button>
+                    <button type="submit" class="modal-btn">Сохранить изменения</button>
+                </div>
             </form>
         </div>
     </div>
@@ -304,6 +384,32 @@
             </form>
         </div>
     </div>
+
+    <div id="editContactModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Изменить контакт</h2>
+                <button class="close-btn" onclick="closeEditContactModal()">×</button>
+            </div>
+            <form id="editContactForm" class="modal-form">
+                <input type="hidden" id="editContactId" value="">
+                <div class="form-group">
+                    <label class="form-label">Имя контакта</label>
+                    <input type="text" class="form-input" id="editContactName" placeholder="Введите имя контакта" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Логин пользователя</label>
+                    <input type="text" class="form-input" id="editContactLogin" placeholder="Введите логин пользователя" required>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="modal-btn">Сохранить изменения</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script src="{{ url_for('static', filename='JS/auth.js') }}"></script>
     <script>
         // Функция для логирования в консоль
@@ -344,26 +450,225 @@
             }
         }
 
-        //функция для показа информации о встрече
-        function showMeetingInfo(meetingId) {
-            console.log(`[MEETING_INFO] meeting.id: ${meetingId}`);
-            showToast('Информация о встрече', `ID встречи: ${meetingId}`, 4000);
+        // Функция для показа полной информации о встрече
+        function showMeetingInfo(meetingId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
+            // Найдем элемент встречи по data атрибуту
+            const meetingElement = document.querySelector(`[data-meeting-id="${meetingId}"]`);
+            
+            if (meetingElement) {
+                const title = meetingElement.querySelector('.item-title').textContent || 'Нет названия';
+                const description = meetingElement.querySelector('.item-description')?.textContent || 'Нет описания';
+                const statusElement = meetingElement.querySelector('.status-badge');
+                const status = statusElement ? statusElement.textContent : 'Неизвестен';
+                
+                // Получим дополнительные данные о встрече
+                const meetingDate = meetingElement.dataset.date || 'Не указана';
+                const meetingTime = meetingElement.dataset.time || 'Не указано';
+                
+                // Форматируем информацию
+                const meetingInfo = `
+<b>ID встречи:</b> ${meetingId}
+<b>Название:</b> ${title}
+<b>Статус:</b> ${status}
+<b>Дата:</b> ${meetingDate}
+<b>Время:</b> ${meetingTime}
+<b>Описание:</b> ${description || 'Отсутствует'}
+                `.trim();
+                
+                console.log(`[MEETING_INFO] Полная информация:`, { meetingId, title, status, date: meetingDate, time: meetingTime });
+                showToast('Информация о встрече', meetingInfo, 'info', 6000);
+            } else {
+                console.log(`[MEETING_INFO] meeting.id: ${meetingId}`);
+                showToast('Информация о встрече', `ID встречи: ${meetingId}`, 'info', 4000);
+            }
         }
 
-        //Функция для присоединения к встрече
-        function joinMeeting(meetingId) {
+        // Функция для присоединения к встрече
+        function joinMeeting(meetingId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
             console.log(`[JOIN_MEETING] meeting.id: ${meetingId}`);
-            window.open(`${window.location.origin}/conference/${meetingId}`)
+            showToast('Присоединение', `Подключаемся к встрече: ${meetingId}`, 'success');
         }
-        //Функция для копирования ссылки на встречу
-        function copyMeetingLink(meetingId) {
-            navigator.clipboard.writeText(`${window.location.origin}/conference/${meetingId}`).then(() => {
+        
+        // Функция для копирования ссылки на встречу
+        function copyMeetingLink(meetingId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            navigator.clipboard.writeText(`${window.location.origin}/join/${meetingId}`).then(() => {
                 console.log(`[COPY_LINK] meeting.id: ${meetingId}`);
                 showToast('Ссылка скопирована!', ``, 'success');
             }).catch(err => {
                 console.log('Ошибка копирования', err);
                 showToast('Ошибка копирования', 'Не удалось скопировать ссылку', 'error');
             });
+        }
+
+        // Функция для переключения выпадающего меню встречи
+        function toggleMeetingActions(meetingId, event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
+            // Закрываем все открытые меню
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                if (menu.id !== `dropdown-${meetingId}`) {
+                    menu.classList.remove('show');
+                }
+            });
+            
+            // Открываем/закрываем текущее меню
+            const dropdown = document.getElementById(`dropdown-${meetingId}`);
+            dropdown.classList.toggle('show');
+        }
+
+        // Функция для подтверждения удаления встречи
+        function confirmDeleteMeeting(meetingId, meetingTitle) {
+            if (confirm(`Вы уверены, что хотите удалить встречу "${meetingTitle}"?`)) {
+                deleteMeeting(meetingId);
+            }
+        }
+
+        // Функция для удаления встречи
+        function deleteMeeting(meetingId) {
+            console.log(`[DELETE_MEETING] meeting.id: ${meetingId}`);
+            showToast('Встреча удалена', '', 'success');
+            
+            // Закрываем выпадающее меню
+            const dropdown = document.getElementById(`dropdown-${meetingId}`);
+            if (dropdown) dropdown.classList.remove('show');
+            
+            // Здесь нужно добавить AJAX запрос для удаления встречи
+            // fetch(`/api/delete_meeting/${meetingId}`, { method: 'DELETE' })
+            //   .then(response => {
+            //       if (response.ok) {
+            //           window.location.reload();
+            //       }
+            //   });
+        }
+
+        // Функции для управления модальными окнами
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('show');
+                document.body.classList.add('modal-open');
+                
+                // Закрываем все выпадающие меню
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                });
+                
+                // Закрываем меню настроек
+                document.getElementById('settingsDropdown').classList.remove('show');
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('show');
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        // Функция для открытия модального окна изменения встречи
+        function openEditMeetingModal(meetingId, title, description) {
+            // Закрываем выпадающее меню
+            const dropdown = document.getElementById(`dropdown-${meetingId}`);
+            if (dropdown) dropdown.classList.remove('show');
+            
+            document.getElementById('editMeetingId').value = meetingId;
+            document.getElementById('editMeetingTitle').value = decodeHTMLEntities(title);
+            document.getElementById('editMeetingDescription').value = decodeHTMLEntities(description);
+            openModal('editMeetingModal');
+            
+            console.log(`[EDIT_MEETING_OPEN] id: ${meetingId}, title: "${title}"`);
+        }
+
+        function openEditMeetingModalFromButton(button) {
+            const meetingId = button.getAttribute('data-meeting-id');
+            const title = button.getAttribute('data-meeting-title');
+            const description = button.getAttribute('data-meeting-description');
+            
+            // Закрываем выпадающее меню
+            const dropdown = document.getElementById(`dropdown-${meetingId}`);
+            if (dropdown) dropdown.classList.remove('show');
+            
+            // Открываем модальное окно
+            document.getElementById('editMeetingId').value = meetingId;
+            document.getElementById('editMeetingTitle').value = title;
+            document.getElementById('editMeetingDescription').value = description;
+            openModal('editMeetingModal');
+            
+            console.log(`[EDIT_MEETING_OPEN] id: ${meetingId}, title: "${title}"`);
+        }
+
+        function closeEditMeetingModal() {
+            closeModal('editMeetingModal');
+        }
+
+        function deleteMeetingFromModal() {
+            const meetingId = document.getElementById('editMeetingId').value;
+            const meetingTitle = document.getElementById('editMeetingTitle').value;
+            
+            if (confirm(`Вы уверены, что хотите удалить встречу "${meetingTitle}"?`)) {
+                deleteMeeting(meetingId);
+                closeEditMeetingModal();
+            }
+        }
+
+        // Функция для открытия модального окна изменения контакта
+        function openEditContactModal(contactId, name, login) {
+            // Декодируем специальные символы
+            const decodedName = decodeHTMLEntities(name);
+            const decodedLogin = decodeHTMLEntities(login);
+            
+            document.getElementById('editContactId').value = contactId;
+            document.getElementById('editContactName').value = decodedName;
+            document.getElementById('editContactLogin').value = decodedLogin;
+            openModal('editContactModal');
+            
+            console.log(`[EDIT_CONTACT_OPEN] id: ${contactId}, name: "${decodedName}", login: "${decodedLogin}"`);
+        }
+
+        function closeEditContactModal() {
+            closeModal('editContactModal');
+        }
+
+        // Вспомогательная функция для декодирования HTML сущностей
+        function decodeHTMLEntities(text) {
+            if (!text) return '';
+            
+            // Создаем временный элемент для декодирования
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+        }
+
+        // Функция для удаления контакта
+        function deleteContact(contactId, contactName) {
+            if (confirm(`Вы уверены, что хотите удалить контакт "${contactName}"?`)) {
+                console.log(`[DELETE_CONTACT] contact.id: ${contactId}, contact.name: ${contactName}`);
+                showToast('Контакт удален', `Контакт "${contactName}" удален`, 'success');
+                // Здесь нужно добавить AJAX запрос для удаления контакта
+                // fetch(`/api/delete_contact/${contactId}`, { method: 'DELETE' })
+                //   .then(response => {
+                //       if (response.ok) {
+                //           window.location.reload();
+                //       }
+                //   });
+            }
         }
 
         // Функция для переключения темы
@@ -393,20 +698,38 @@
 
         // Функции для модальных окон
         function openScheduleModal() {
-            document.getElementById('scheduleModal').classList.add('show');
+            openModal('scheduleModal');
             document.getElementById('meetingDate').min = new Date().toISOString().split('T')[0];
         }
 
-        function closeScheduleModal() { document.getElementById('scheduleModal').classList.remove('show'); }
-        function openJoinModal() { document.getElementById('joinModal').classList.add('show'); }
-        function closeJoinModal() { document.getElementById('joinModal').classList.remove('show'); }
-        function openCreateRoomModal() { document.getElementById('createRoomModal').classList.add('show'); }
-        function closeCreateRoomModal() { document.getElementById('createRoomModal').classList.remove('show'); }
+        function closeScheduleModal() { 
+            closeModal('scheduleModal'); 
+        }
+        
+        function openJoinModal() { 
+            openModal('joinModal'); 
+        }
+        
+        function closeJoinModal() { 
+            closeModal('joinModal'); 
+        }
+        
+        function openCreateRoomModal() { 
+            openModal('createRoomModal'); 
+        }
+        
+        function closeCreateRoomModal() { 
+            closeModal('createRoomModal'); 
+        }
+        
         function openAddContactModal() { 
-            document.getElementById('addContactModal').classList.add('show');
+            openModal('addContactModal');
             document.getElementById('addContactForm').reset();
         }
-        function closeAddContactModal() { document.getElementById('addContactModal').classList.remove('show'); }
+        
+        function closeAddContactModal() { 
+            closeModal('addContactModal'); 
+        }
 
         // Обработчики форм
         document.getElementById('scheduleForm').addEventListener('submit', async function(e) {
@@ -432,11 +755,67 @@
                 window.location.reload();
             } else {
                 const errorData = await response.json();
-                showToast('Ошбика при планировании комнаты', `${errorData.error}`, 'error')
-                console.log('ошибка при планировании комнаты', formData);
+                showToast('Ошибка при планировании комнаты', `${errorData.error}`, 'error');
+                console.log('Ошибка при планировании комнаты', formData);
             }
             
             closeScheduleModal();
+        });
+
+        // Обработчик формы изменения встречи
+        document.getElementById('editMeetingForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const meetingId = document.getElementById('editMeetingId').value;
+            const formData = {
+                'room.id': meetingId,
+                'room.name': document.getElementById('editMeetingTitle').value,
+                'room.activation_time': `${document.getElementById('editMeetingDate').value}T${document.getElementById('editMeetingTime').value}`,
+                'room.description': document.getElementById('editMeetingDescription').value || '(empty)'
+            };
+            
+            console.log(`[REFACTOR_ROOM]`, formData);
+            const response = await fetch('/api/refactor_room', {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(formData)
+            });
+            if (response.ok) {
+                showToast('Изменения сохранены', 'Данные встречи обновлены', 'success');
+                window.location.reload();
+            } else {
+                const errorData = await response.json();
+                showToast('Ошибка при изменении комнаты', `${errorData.error}`, 'error');
+                console.log('Ошибка при изменении комнаты', formData);
+            }
+            
+            closeEditMeetingModal();
+        });
+
+        // Обработчик формы изменения контакта
+        document.getElementById('editContactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const contactId = document.getElementById('editContactId').value;
+            const formData = {
+                'contact.id': contactId,
+                'contact.name': document.getElementById('editContactName').value,
+                'contact.login': document.getElementById('editContactLogin').value
+            };
+            
+            console.log(`[EDIT_CONTACT]`, formData);
+            showToast('Изменения сохранены', 'Данные контакта обновлены', 'success');
+            
+            // Здесь нужно добавить AJAX запрос для сохранения изменений
+            // fetch('/api/edit_contact', {
+            //     method: 'PUT',
+            //     headers: {'Content-Type': 'application/json'},
+            //     body: JSON.stringify(formData)
+            // }).then(response => {
+            //     if (response.ok) {
+            //         window.location.reload();
+            //     }
+            // });
+            
+            closeEditContactModal();
         });
 
         document.getElementById('joinForm').addEventListener('submit', function(e) {
@@ -478,8 +857,8 @@
                 window.location.reload();
             } else {
                 const errorData = await response.json();
-                showToast('Ошбика при создании комнаты', `${errorData.error}`, 'error')
-                console.log('ошибка при создании комнаты', formData);
+                showToast('Ошибка при создании комнаты', `${errorData.error}`, 'error');
+                console.log('Ошибка при создании комнаты', formData);
             }
             
             closeCreateRoomModal();
@@ -505,7 +884,8 @@
                 showToast('Ошибка', 'Введите логин пользователя', 'error');
                 return;
             }
-            //Сюда написать добавление контакта.
+            
+            // Сюда написать добавление контакта.
             const response = await fetch('api/add_contact', {
                 method: 'POST',
                 headers: {
@@ -521,15 +901,16 @@
                 window.location.reload();
             } else {
                 const errorData = await response.json();
-                showToast('Ошбика при добавлении контакта', `${errorData.error}`, 'error')
-                console.log('ошибка при доблении контакта auth.js', formData);
+                showToast('Ошибка при добавлении контакта', `${errorData.error}`, 'error');
+                console.log('Ошибка при добавлении контакта auth.js', formData);
             }
             closeAddContactModal();
         });
 
         // Остальные функции
         function toggleSettings() {
-            document.getElementById('settingsDropdown').classList.toggle('show');
+            const dropdown = document.getElementById('settingsDropdown');
+            dropdown.classList.toggle('show');
         }
 
         function updatePrivacySetting(setting, value) {
@@ -550,6 +931,29 @@
             changeTheme(savedTheme);
             
             console.log(`[INIT] user: {{ user_name }} ({{ user_login }}), theme: ${savedTheme}`);
+            
+            // Закрываем выпадающие меню при клике вне их
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.meeting-actions-dropdown') && !e.target.closest('.settings-btn')) {
+                    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                        menu.classList.remove('show');
+                    });
+                    
+                    // Закрываем меню настроек при клике вне его
+                    if (!e.target.closest('.settings-dropdown') && !e.target.closest('.settings-btn')) {
+                        document.getElementById('settingsDropdown').classList.remove('show');
+                    }
+                }
+            });
+            
+            // Закрываем модальные окна при клике на overlay
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        closeModal(this.id);
+                    }
+                });
+            });
         });
     </script>
 </body>

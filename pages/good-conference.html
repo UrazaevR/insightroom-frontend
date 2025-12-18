@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Конференция - Insight Room</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/conference.css') }}">
+</head>
+<body data-user-name="{{ user_name }}">
+    <div class="animated-bg"></div>
+    
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <a href="/" class="logo-link">Insight Room</a>
+            </div>
+            <nav class="nav">
+                <div class="meeting-info">
+                    <span id="meetingId">ID: {{ room_url }}</span>
+                    <span id="meetingTimer">⏰ 00:00:00</span>
+                    <span id="participantCount">👥 1</span>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main conference-main">
+        <div class="conference-layout">
+            <!-- Кнопка разворачивания левой панели (видна только на мобильных) -->
+            <button class="expand-left-panel" id="expandLeftPanel" title="Показать участников">
+                <img src="{{ url_for('static', filename='images/contacts-icon.png') }}" alt="Участники">
+            </button>
+
+            <!-- Левая панель - видео участников (все участники включая себя) -->
+            <div class="left-panel" id="leftPanel">
+                <div class="video-panel-header">
+                    <h3 class="video-panel-title">Участники</h3>
+                </div>
+                <div class="video-participants-grid" id="videoParticipantsList">
+                    <!-- Текущий пользователь -->
+                    <div class="video-participant-card" id="participant-local">
+                        <div class="video-placeholder">
+                            <div class="participant-avatar">{{ user_name[:2]|upper if user_name else 'УЧ' }}</div>
+                            <video id="localVideoThumbnail" autoplay playsinline muted style="display: none;"></video>
+                        </div>
+                        <div class="participant-name">{{ user_name or 'Вы' }}</div>
+                        <div class="participant-status">
+                            <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="status-icon muted" id="localAudioStatus">
+                            <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="status-icon muted" id="localVideoStatus">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Центральная панель - главное видео -->
+            <div class="center-panel" id="centerPanel">
+                <div class="main-video-container" id="mainVideoContainer">
+                    <div class="video-placeholder active" id="mainVideoPlaceholder">
+                        <div class="placeholder-content">
+                            <div class="user-avatar large" id="mainUserAvatar">{{ user_name[:2]|upper if user_name else 'У' }}</div>
+                            <div class="user-name" id="mainUserName">{{ user_name or 'Участник' }}</div>
+                            <div class="user-status">Камера выключена</div>
+                        </div>
+                    </div>
+                    <video id="mainVideo" class="main-video" autoplay playsinline></video>
+                    <video id="screenShareVideo" class="main-video" autoplay playsinline style="display: none;"></video>
+
+                    <!-- Добавляем iframe для Excalidraw с улучшенной безопасностью -->
+                    <iframe 
+                        id="whiteboardFrame" 
+                        src="https://excalidraw.com/" 
+                        style="display: none; width: 100%; height: 100%; border: none; border-radius: 8px;"
+                        allow="clipboard-read; clipboard-write"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        title="Интерактивная доска"
+                    ></iframe>
+                </div>
+            </div>
+
+            <!-- Правая панель - чат и список участников -->
+            <div class="right-panel">
+                <!-- По умолчанию показываем список участников -->
+                <div class="sidebar" id="participantsListSidebar">
+                    <div class="sidebar-header">
+                        <h3 class="sidebar-title">Список участников (<span id="participantsCount">1</span>)</h3>
+                    </div>
+                    <div class="participants-list" id="participantsList">
+                        <!-- Текущий пользователь -->
+                        <div class="participant-list-item local-user" id="list-item-local">
+                            <div class="participant-info">
+                                <div class="participant-details">
+                                    <div class="participant-name">{{ user_name or 'Вы' }}</div>
+                                </div>
+                                <div class="participant-controls">
+                                    <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="status-icon" id="listAudioStatus">
+                                    <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="status-icon" id="listVideoStatus">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Чат (скрыт по умолчанию) -->
+                <div class="sidebar" id="chatSidebar" style="display: none;">
+                    <div class="sidebar-header">
+                        <h3 class="sidebar-title">Чат встречи</h3>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Сообщения будут добавляться динамически -->
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Введите сообщение..." onkeypress="handleChatInputKeypress(event)">
+                        <button class="send-btn" id="sendMessage" onclick="sendChatMessage()">
+                            <img src="{{ url_for('static', filename='images/send-message-icon.png') }}" alt="Отправить">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Панель управления -->
+        <div class="control-panel">
+            <button class="control-btn muted" id="toggleAudio" title="Микрофон">
+                <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="control-icon" id="toggleAudioIcon">
+            </button>
+            
+            <button class="control-btn muted" id="toggleVideo" title="Камера">
+                <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="control-icon" id="toggleVideoIcon">
+            </button>
+            
+            <button class="control-btn" id="toggleScreen" title="Поделиться экраном">
+                <img src="{{ url_for('static', filename='images/screen-share.png') }}" alt="Демонстрация экрана" class="control-icon" id="toggleScreenIcon">
+            </button>
+
+            <div class="control-separator"></div>
+
+            <button class="control-btn" id="toggleWhiteboardBtn" title="Доска">
+                <img src="{{ url_for('static', filename='images/whiteboard-new-icon.png') }}" alt="Доска" class="control-icon">
+            </button>
+
+            <button class="control-btn" id="toggleChatBtn" title="Чат">
+                <img src="{{ url_for('static', filename='images/chat-new-icon.png') }}" alt="Чат" class="control-icon">
+            </button>
+
+            <div class="control-separator"></div>
+            
+            <button class="control-btn danger" id="leaveCall" title="Покинуть встречу">
+                <img src="{{ url_for('static', filename='images/leave-call.png') }}" alt="Покинуть встречу" class="control-icon">
+            </button>
+        </div>
+    </main>
+
+    <!-- SocketIO клиент -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/conference.js') }}"></script>
+    
+    <!-- Исправленная логика управления -->
+    <script>
+        // Глобальные переменные с четким состоянием
+        let localStream = null;
+        let screenStream = null;
+        let meetingStartTime = Date.now();
+        let audioContext = null;
+        let analyser = null;
+        let speakingCheckInterval = null;
+        
+        // Состояния медиа
+        let mediaState = {
+            audioEnabled: false,
+            videoEnabled: false,
+            screenSharing: false,
+            whiteboardActive: false  // Добавляем состояние доски
+        };
+
+        // Таймер встречи
+        function updateMeetingTimer() {
+            const now = Date.now();
+            const diff = now - meetingStartTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            const timerElement = document.getElementById('meetingTimer');
+            if (timerElement) {
+                timerElement.textContent = '⏰ ' + hours.toString().padStart(2, '0') + ':' + minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            }
+        }
+        
+        setInterval(updateMeetingTimer, 1000);
+
+        // Основная инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Сразу устанавливаем кнопки в красное состояние
+            forceRedButtons();
+            initializeMedia();
+            setupUIHandlers();
+            setupAdaptiveLayout();
+            updateParticipantCount();
+            setupAudioAnalysis();
+        });
+
+        // Принудительно устанавливаем кнопки в красное состояние
+        function forceRedButtons() {
+            const toggleAudioBtn = document.getElementById('toggleAudio');
+            const toggleVideoBtn = document.getElementById('toggleVideo');
+            
+            if (toggleAudioBtn) {
+                toggleAudioBtn.classList.add('muted');
+            }
+            if (toggleVideoBtn) {
+                toggleVideoBtn.classList.add('muted');
+            }
+        }
+
+        // Инициализация медиа
+        async function initializeMedia() {
+            try {
+                console.log('Запрос разрешений на медиа...');
+                
+                // Запрашиваем доступ к камере и микрофону
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                    }
+                });
+
+                console.log('Медиа поток получен:', localStream);
+
+                // Настраиваем главное видео
+                const mainVideo = document.getElementById('mainVideo');
+                const mainPlaceholder = document.getElementById('mainVideoPlaceholder');
+                const localVideoThumbnail = document.getElementById('localVideoThumbnail');
+                
+                if (mainVideo) {
+                    mainVideo.srcObject = localStream;
+                    mainVideo.onloadeddata = () => {
+                        // Изначально камера и микрофон выключены
+                        const videoTrack = localStream.getVideoTracks()[0];
+                        const audioTrack = localStream.getAudioTracks()[0];
+                        
+                        if (videoTrack) videoTrack.enabled = false;
+                        if (audioTrack) audioTrack.enabled = false;
+                        
+                        // Обновляем состояние
+                        mediaState.audioEnabled = false;
+                        mediaState.videoEnabled = false;
+                        
+                        updateMediaUI();
+                        mainPlaceholder.style.display = 'flex';
+                        mainVideo.style.display = 'none';
+                    };
+                }
+
+                // Настраиваем видео для миниатюры
+                if (localVideoThumbnail) {
+                    localVideoThumbnail.srcObject = localStream;
+                }
+
+                showNotification('Камера и микрофон подключены');
+
+            } catch (error) {
+                console.error('Ошибка доступа к медиа:', error);
+                showNotification('Не удалось получить доступ к камере/микрофону');
+                
+                // Создаем кнопку для повторного запроса
+                createMediaPermissionButton();
+            }
+        }
+
+        // Настройка анализа аудио для определения активности речи
+        function setupAudioAnalysis() {
+            if (!localStream) return;
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(localStream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                
+                // Запускаем проверку активности речи
+                speakingCheckInterval = setInterval(checkSpeakingActivity, 100);
+            } catch (error) {
+                console.error('Ошибка настройки анализа аудио:', error);
+            }
+        }
+
+         // Проверка активности речи
+        function checkSpeakingActivity() {
+            if (!analyser || !mediaState.audioEnabled) {
+                document.getElementById('list-item-local').classList.remove('speaking');
+                document.getElementById('participant-local').classList.remove('speaking');
+                return;
+            }
+            
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Вычисляем средний уровень громкости
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            const average = sum / dataArray.length;
+            
+            // Порог для определения активности речи
+            const speakingThreshold = 30;
+            const isSpeaking = average > speakingThreshold;
+            
+            // Обновляем визуальное отображение
+            const localListItem = document.getElementById('list-item-local');
+            const localParticipantCard = document.getElementById('participant-local');
+            if (isSpeaking) {
+                localListItem.classList.add('speaking');
+                localParticipantCard.classList.add('speaking');
+            } else {
+                localListItem.classList.remove('speaking');
+                localParticipantCard.classList.remove('speaking');
+            }
+        }
+
+        // Единая функция обновления UI состояния медиа
+        function updateMediaUI() {
+            console.log('Обновление UI медиа:', mediaState);
+            
+            // Обновляем иконки на панели управления
+            const toggleAudioIcon = document.getElementById('toggleAudioIcon');
+            const toggleVideoIcon = document.getElementById('toggleVideoIcon');
+            const toggleAudioBtn = document.getElementById('toggleAudio');
+            const toggleVideoBtn = document.getElementById('toggleVideo');
+            
+            if (toggleAudioIcon && toggleAudioBtn) {
+                toggleAudioIcon.src = mediaState.audioEnabled ? 
+                    "{{ url_for('static', filename='images/mic-on.png') }}" : 
+                    "{{ url_for('static', filename='images/mic-off.png') }}";
+                
+                if (mediaState.audioEnabled) {
+                    toggleAudioBtn.classList.remove('muted');
+                } else {
+                    toggleAudioBtn.classList.add('muted');
+                }
+            }
+            
+            if (toggleVideoIcon && toggleVideoBtn) {
+                toggleVideoIcon.src = mediaState.videoEnabled ? 
+                    "{{ url_for('static', filename='images/camera-on.png') }}" : 
+                    "{{ url_for('static', filename='images/camera-off.png') }}";
+                
+                if (mediaState.videoEnabled) {
+                    toggleVideoBtn.classList.remove('muted');
+                } else {
+                    toggleVideoBtn.classList.add('muted');
+                }
+            }
+            
+            // Обновляем статусы в левой панели
+            const localAudioStatus = document.getElementById('localAudioStatus');
+            const localVideoStatus = document.getElementById('localVideoStatus');
+            
+            if (localAudioStatus) {
+                localAudioStatus.src = mediaState.audioEnabled ? 
+                    "{{ url_for('static', filename='images/mic-on.png') }}" : 
+                    "{{ url_for('static', filename='images/mic-off.png') }}";
+                localAudioStatus.classList.toggle('muted', !mediaState.audioEnabled);
+            }
+
+            if (localVideoStatus) {
+                localVideoStatus.src = mediaState.videoEnabled ? 
+                    "{{ url_for('static', filename='images/camera-on.png') }}" : 
+                    "{{ url_for('static', filename='images/camera-off.png') }}";
+                localVideoStatus.classList.toggle('muted', !mediaState.videoEnabled);
+            }
+
+            // Обновляем статусы в списке участников
+            const listAudioStatus = document.getElementById('listAudioStatus');
+            const listVideoStatus = document.getElementById('listVideoStatus');
+            
+            if (listAudioStatus) {
+                listAudioStatus.src = mediaState.audioEnabled ? 
+                    "{{ url_for('static', filename='images/mic-on.png') }}" : 
+                    "{{ url_for('static', filename='images/mic-off.png') }}";
+            }
+
+            if (listVideoStatus) {
+                listVideoStatus.src = mediaState.videoEnabled ? 
+                    "{{ url_for('static', filename='images/camera-on.png') }}" : 
+                    "{{ url_for('static', filename='images/camera-off.png') }}";
+            }
+            
+            // Обновляем видео в миниатюре (левая панель) - независимо от демонстрации экрана
+            const localVideoThumbnail = document.getElementById('localVideoThumbnail');
+            const localAvatar = document.querySelector('#participant-local .participant-avatar');
+            
+            if (localVideoThumbnail && localAvatar) {
+                if (mediaState.videoEnabled) {
+                    localVideoThumbnail.style.display = 'block';
+                    localAvatar.style.display = 'none';
+                } else {
+                    localVideoThumbnail.style.display = 'none';
+                    localAvatar.style.display = 'flex';
+                }
+            }
+            
+            // Обновляем главное видео в центре
+            updateMainVideoDisplay();
+        }
+
+        // Функция переключения доски
+        function toggleWhiteboard() {
+            mediaState.whiteboardActive = !mediaState.whiteboardActive;
+            updateMainVideoDisplay();
+            
+            const whiteboardBtn = document.getElementById('toggleWhiteboardBtn');
+            if (whiteboardBtn) {
+                if (mediaState.whiteboardActive) {
+                    whiteboardBtn.classList.add('active');
+                    showNotification('Доска открыта');
+                } else {
+                    whiteboardBtn.classList.remove('active');
+                    showNotification('Доска закрыта');
+                }
+            }
+        }
+
+        // Обновляем функцию отображения главного видео для учета доски
+        function updateMainVideoDisplay() {
+            const mainVideo = document.getElementById('mainVideo');
+            const screenShareVideo = document.getElementById('screenShareVideo');
+            const mainPlaceholder = document.getElementById('mainVideoPlaceholder');
+            const whiteboardFrame = document.getElementById('whiteboardFrame');
+            
+            if (mediaState.whiteboardActive) {
+                // Показываем доску в центре
+                mainPlaceholder.style.display = 'none';
+                mainVideo.style.display = 'none';
+                screenShareVideo.style.display = 'none';
+                if (whiteboardFrame) whiteboardFrame.style.display = 'block';
+            } else if (mediaState.screenSharing) {
+                // Показываем демонстрацию экрана
+                mainPlaceholder.style.display = 'none';
+                mainVideo.style.display = 'none';
+                screenShareVideo.style.display = 'block';
+                if (whiteboardFrame) whiteboardFrame.style.display = 'none';
+            } else {
+                // Показываем камеру или аватар
+                if (whiteboardFrame) whiteboardFrame.style.display = 'none';
+                screenShareVideo.style.display = 'none';
+                
+                if (mediaState.videoEnabled) {
+                    mainPlaceholder.style.display = 'none';
+                    mainVideo.style.display = 'block';
+                } else {
+                    mainPlaceholder.style.display = 'flex';
+                    mainVideo.style.display = 'none';
+                }
+            }
+        }
+
+        // Функция переключения аудио
+        function toggleAudio() {
+            if (!localStream) return;
+            
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                mediaState.audioEnabled = !mediaState.audioEnabled;
+                audioTracks[0].enabled = mediaState.audioEnabled;
+                updateMediaUI();
+                showNotification(mediaState.audioEnabled ? 'Микрофон включен' : 'Микрофон выключен');
+            }
+        }
+
+        // Функция переключения видео
+        function toggleVideo() {
+            if (!localStream) return;
+            
+            const videoTracks = localStream.getVideoTracks();
+            if (videoTracks.length > 0) {
+                mediaState.videoEnabled = !mediaState.videoEnabled;
+                videoTracks[0].enabled = mediaState.videoEnabled;
+                updateMediaUI();
+                showNotification(mediaState.videoEnabled ? 'Камера включена' : 'Камера выключена');
+            }
+        }
+
+        // Настройка обработчиков UI
+        function setupUIHandlers() {
+            // Переключение чата/списка участников
+            const toggleChatBtn = document.getElementById('toggleChatBtn');
+            const chatSidebar = document.getElementById('chatSidebar');
+            const participantsSidebar = document.getElementById('participantsListSidebar');
+
+            if (toggleChatBtn) {
+                toggleChatBtn.addEventListener('click', function() {
+                    if (chatSidebar.style.display === 'flex') {
+                        participantsSidebar.style.display = 'flex';
+                        chatSidebar.style.display = 'none';
+                        toggleChatBtn.classList.remove('active');
+                    } else {
+                        participantsSidebar.style.display = 'none';
+                        chatSidebar.style.display = 'flex';
+                        toggleChatBtn.classList.add('active');
+                    }
+                });
+            }
+
+            // Микрофон - прямое назначение функции
+            const toggleAudioBtn = document.getElementById('toggleAudio');
+            if (toggleAudioBtn) {
+                toggleAudioBtn.addEventListener('click', toggleAudio);
+            }
+
+            // Камера - прямое назначение функции
+            const toggleVideoBtn = document.getElementById('toggleVideo');
+            if (toggleVideoBtn) {
+                toggleVideoBtn.addEventListener('click', toggleVideo);
+            }
+
+            // Демонстрация экрана
+            const toggleScreenBtn = document.getElementById('toggleScreen');
+            if (toggleScreenBtn) {
+                toggleScreenBtn.addEventListener('click', toggleScreenShare);
+            }
+
+            // Доска
+            const toggleWhiteboardBtn = document.getElementById('toggleWhiteboardBtn');
+            if (toggleWhiteboardBtn) {
+                toggleWhiteboardBtn.addEventListener('click', toggleWhiteboard);
+            }
+
+            // Выход из конференции
+            const leaveCallBtn = document.getElementById('leaveCall');
+            if (leaveCallBtn) {
+                leaveCallBtn.addEventListener('click', function() {
+                    if (confirm('Вы уверены, что хотите покинуть встречу?')) {
+                        stopAllMedia();
+                        window.location.href = '/';
+                    }
+                });
+            }
+
+            // Обработчик для кнопки разворачивания левой панели
+            const expandLeftPanelBtn = document.getElementById('expandLeftPanel');
+            const leftPanel = document.getElementById('leftPanel');
+            const centerPanel = document.getElementById('centerPanel');
+
+            if (expandLeftPanelBtn && leftPanel) {
+                expandLeftPanelBtn.addEventListener('click', function() {
+                    leftPanel.classList.toggle('collapsed');
+                    centerPanel.classList.toggle('expanded');
+                });
+            }
+        }
+
+        // Демонстрация экрана (НЕ влияет на микрофон и камеру)
+        async function toggleScreenShare() {
+            try {
+                if (!mediaState.screenSharing) {
+                    // Запуск демонстрации экрана
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: false // Не захватываем аудио с экрана
+                    });
+                    
+                    const screenShareVideo = document.getElementById('screenShareVideo');
+                    
+                    if (screenShareVideo) {
+                        screenShareVideo.srcObject = screenStream;
+                    }
+                    
+                    // ВАЖНО: НЕ меняем состояние микрофона и камеры
+                    mediaState.screenSharing = true;
+                    
+                    // Обновляем только отображение главного видео
+                    updateMainVideoDisplay();
+                    
+                    document.getElementById('toggleScreen').classList.add('active');
+                    showNotification('Демонстрация экрана начата');
+                    
+                    // Обработчик окончания демонстрации
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+                    
+                } else {
+                    stopScreenShare();
+                }
+            } catch (error) {
+                console.error('Ошибка демонстрации экрана:', error);
+                if (error.name === 'NotAllowedError') {
+                    showNotification('Доступ к демонстрации экрана отклонен');
+                } else {
+                    showNotification('Не удалось начать демонстрацию экрана');
+                }
+            }
+        }
+
+        // Остановка демонстрации экрана
+        function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+            
+            mediaState.screenSharing = false;
+            const toggleScreenBtn = document.getElementById('toggleScreen');
+            
+            if (toggleScreenBtn) {
+                toggleScreenBtn.classList.remove('active');
+            }
+            
+            // Восстанавливаем отображение главного видео
+            updateMainVideoDisplay();
+            
+            showNotification('Демонстрация экрана остановлена');
+        }
+
+        // Остановка всех медиа потоков
+        function stopAllMedia() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+            }
+            if (speakingCheckInterval) {
+                clearInterval(speakingCheckInterval);
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            // Сбрасываем состояние доски
+            mediaState.whiteboardActive = false;
+        }
+
+        // Настройка адаптивного layout
+        function setupAdaptiveLayout() {
+            function handleResize() {
+                const width = window.innerWidth;
+                const leftPanel = document.getElementById('leftPanel');
+                const centerPanel = document.getElementById('centerPanel');
+                const expandLeftPanelBtn = document.getElementById('expandLeftPanel');
+
+                if (width <= 768) {
+                    if (leftPanel) leftPanel.classList.add('collapsed');
+                    if (centerPanel) centerPanel.classList.add('expanded');
+                    if (expandLeftPanelBtn) expandLeftPanelBtn.style.display = 'flex';
+                } else {
+                    if (leftPanel) leftPanel.classList.remove('collapsed');
+                    if (centerPanel) centerPanel.classList.remove('expanded');
+                    if (expandLeftPanelBtn) expandLeftPanelBtn.style.display = 'none';
+                }
+            }
+
+            window.addEventListener('resize', handleResize);
+            handleResize();
+        }
+
+        // Обновление счетчика участников
+        function updateParticipantCount() {
+            const totalParticipants = 1;
+            document.getElementById('participantCount').textContent = `👥 ${totalParticipants}`;
+            document.getElementById('participantsCount').textContent = totalParticipants;
+        }
+
+        // Функции для работы с чатом
+        function handleChatInputKeypress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function sendChatMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+            
+            if (message) {
+                addChatMessage('Вы', message, true);
+                chatInput.value = '';
+                
+                // Здесь будет отправка сообщения через WebSocket
+                console.log('Отправка сообщения:', message);
+            }
+        }
+
+        function addChatMessage(sender, text, isOwn = false) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isOwn ? 'message own-message' : 'message remote-message';
+            
+            const now = new Date();
+            const timeString = now.getHours().toString().padStart(2, '0') + ':' + 
+                             now.getMinutes().toString().padStart(2, '0');
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-sender">${sender}</span>
+                    <span class="message-time">${timeString}</span>
+                </div>
+                <div class="message-text">${text}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Показ уведомлений
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'media-notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                padding: 12px 24px;
+                border-radius: 25px;
+                box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+                z-index: 1001;
+                font-weight: 600;
+                color: #333;
+                animation: slideDown 0.3s ease;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+
+        // Создание кнопки для повторного запроса медиа
+        function createMediaPermissionButton() {
+            const retryBtn = document.createElement('button');
+            retryBtn.textContent = 'Разрешить камеру и микрофон';
+            retryBtn.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: #007bff;
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 25px;
+                font-size: 16px;
+                cursor: pointer;
+                z-index: 1001;
+                box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+            `;
+            
+            retryBtn.addEventListener('click', function() {
+                retryBtn.remove();
+                initializeMedia();
+            });
+            
+            document.body.appendChild(retryBtn);
+        }
+
+        // Обработка закрытия страницы
+        window.addEventListener('beforeunload', function() {
+            stopAllMedia();
+        });
+    </script>
+</body>
+</html>
