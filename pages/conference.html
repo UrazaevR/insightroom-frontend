@@ -3,55 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Конференция - Insight Room</title>
+    <title>{{room_name}} - Insight Room</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles/conference.css') }}">
     <style>
-        /* Дополнительные стили для WebRTC */
+        /* Спиннер и оверлеи */
         .webrtc-loading {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            color: white;
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
+            color: white; z-index: 2000;
+            justify-content: center; align-items: center; flex-direction: column;
         }
         
         .connection-status {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
+            position: fixed; bottom: 100px; left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 12px;
-            z-index: 1001;
-            display: none;
-        }
-        
-        .connection-status.connected {
-            background: rgba(76, 175, 80, 0.8);
-        }
-        
-        .connection-status.disconnected {
-            background: rgba(244, 67, 54, 0.8);
+            color: white; padding: 10px 20px;
+            border-radius: 20px; font-size: 12px;
+            z-index: 1001; display: none;
         }
         
         .media-notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
+            position: fixed; top: 20px; left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
@@ -59,155 +34,42 @@
             border-radius: 25px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
             z-index: 1001;
-            font-weight: 600;
-            color: #333;
+            font-weight: 600; color: #333;
             animation: slideDown 0.3s ease;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-            }
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
         
-        .remote-video-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
+        .remote-video-container { position: relative; width: 100%; height: 100%; }
         
         .video-overlay {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 8px;
-            color: white;
-            font-size: 12px;
+            position: absolute; bottom: 10px; left: 10px; right: 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px; color: white; font-size: 12px; z-index: 10;
         }
         
-        /* Стили для подсказки медиа */
-        .media-prompt {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 15px 20px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-            z-index: 1001;
-            max-width: 300px;
-            animation: slideInRight 0.3s ease;
-        }
-        
-        .media-prompt.hidden {
-            display: none;
-        }
-        
-        .media-prompt p {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #333;
-        }
-        
-        .media-prompt-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .prompt-btn {
-            padding: 8px 15px;
-            border-radius: 20px;
-            border: none;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .prompt-btn.enable {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .prompt-btn.dismiss {
-            background: #f0f0f0;
-            color: #666;
-        }
-        
-        .prompt-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .prompt-btn.enable:hover {
-            background: #45a049;
-        }
-        
-        .prompt-btn.dismiss:hover {
-            background: #e0e0e0;
-        }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        /* Стили для спиннера загрузки */
         .spinner {
             border: 4px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 4px solid #fff;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+            border-radius: 50%; border-top: 4px solid #fff;
+            width: 40px; height: 40px;
+            animation: spin 1s linear infinite; margin-bottom: 20px;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body data-user-name="{{ user_name }}" data-room-url="{{ room_url }}">
-    <!-- Индикатор загрузки WebRTC -->
+    
     <div class="webrtc-loading" id="webrtcLoading">
         <div class="spinner"></div>
         <p>Подключение к конференции...</p>
     </div>
     
-    <!-- Статус соединения -->
-    <div class="connection-status" id="connectionStatus">
-        Подключение...
-    </div>
-    
-    <!-- Подсказка для включения медиа -->
-    <div class="media-prompt hidden" id="mediaPrompt">
-        <p>Включите микрофон и камеру, чтобы другие участники вас видели и слышали</p>
-        <div class="media-prompt-buttons">
-            <button class="prompt-btn enable" id="enableMediaBtn">Включить всё</button>
-            <button class="prompt-btn dismiss" id="dismissPromptBtn">Позже</button>
-        </div>
-    </div>
+    <div class="connection-status" id="connectionStatus">Подключение...</div>
     
     <div class="animated-bg"></div>
     
@@ -218,8 +80,9 @@
             </div>
             <nav class="nav">
                 <div class="meeting-info">
-                    <span id="meetingId">ID: {{ room_url }}</span>
-                    <span id="participantCount">👥 1</span>
+                    <span class="room-title" style="font-weight: bold; margin-right: 10px;">{{ room_name }}</span>
+                    <span id="meetingId" style="font-size: 0.9em; opacity: 0.8;">ID: {{ room_url }}</span>
+                    <span id="participantCount" style="margin-left: 15px;">👥 1</span>
                 </div>
             </nav>
         </div>
@@ -227,12 +90,11 @@
 
     <main class="main conference-main">
         <div class="conference-layout">
-            <!-- Кнопка разворачивания левой панели -->
             <button class="expand-left-panel" id="expandLeftPanel" title="Показать участников">
                 <img src="{{ url_for('static', filename='images/contacts-icon.png') }}" alt="Участники">
             </button>
 
-            <!-- Левая панель - видео участников -->
+            <!-- ЛЕВАЯ ПАНЕЛЬ -->
             <div class="left-panel" id="leftPanel">
                 <div class="video-panel-header">
                     <h3 class="video-panel-title">Участники</h3>
@@ -241,22 +103,22 @@
                     <!-- Локальный пользователь -->
                     <div class="video-participant-card local-user" id="participant-local">
                         <div class="video-placeholder">
-                            <div class="participant-avatar" id="localAvatar">{{ user_name[:2]|upper if user_name else 'УЧ' }}</div>
+                            <div class="participant-avatar" id="localAvatar" style="display: flex;">{{ user_name[:2]|upper if user_name else 'УЧ' }}</div>
                             <video id="localVideoThumbnail" autoplay playsinline muted style="display: none;"></video>
                         </div>
                         <div class="participant-name">{{ user_name or 'Вы' }}</div>
                         <div class="participant-status">
-                            <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="status-icon muted" id="localAudioStatus">
-                            <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="status-icon muted" id="localVideoStatus">
+                            <img src="{{ url_for('static', filename='images/mic-off.png') }}" class="status-icon muted" id="localAudioStatus">
+                            <img src="{{ url_for('static', filename='images/camera-off.png') }}" class="status-icon muted" id="localVideoStatus">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Центральная панель - главное видео -->
+            <!-- ЦЕНТРАЛЬНАЯ ПАНЕЛЬ -->
             <div class="center-panel" id="centerPanel">
                 <div class="main-video-container" id="mainVideoContainer">
-                    <!-- Основной контейнер для видео -->
+                    
                     <div class="video-placeholder active" id="mainVideoPlaceholder">
                         <div class="placeholder-content">
                             <div class="user-avatar large" id="mainUserAvatar">{{ user_name[:2]|upper if user_name else 'УЧ' }}</div>
@@ -264,70 +126,62 @@
                         </div>
                     </div>
                     
-                    <!-- Локальное видео (главное) -->
                     <div class="remote-video-container" id="mainVideoWrapper" style="display: none;">
                         <video id="mainVideo" class="main-video" autoplay playsinline></video>
                         <div class="video-overlay">
                             <span id="mainVideoName">{{ user_name or 'Вы' }}</span>
                             <div class="video-status">
-                                <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="status-icon" id="mainVideoAudioStatus">
-                                <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="status-icon" id="mainVideoVideoStatus">
+                                <img src="{{ url_for('static', filename='images/mic-off.png') }}" class="status-icon" id="mainVideoAudioStatus">
+                                <img src="{{ url_for('static', filename='images/camera-off.png') }}" class="status-icon" id="mainVideoVideoStatus">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- Демонстрация экрана -->
                     <div class="remote-video-container" id="screenShareWrapper" style="display: none;">
                         <video id="screenShareVideo" class="main-video" autoplay playsinline></video>
                         <div class="video-overlay">
-                            <span>Демонстрация экрана - {{ user_name or 'Вы' }}</span>
+                            <span>Демонстрация экрана</span>
                         </div>
                     </div>
                     
-                    <!-- Excalidraw доска -->
+                    <!-- Возвращен IFRAME для доски -->
                     <iframe 
                         id="whiteboardFrame" 
-                        src="https://excalidraw.com/" 
+                        src="about:blank" 
                         style="display: none; width: 100%; height: 100%; border: none; border-radius: 8px;"
                         allow="clipboard-read; clipboard-write"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                         title="Интерактивная доска"
                     ></iframe>
                 </div>
             </div>
 
-            <!-- Правая панель - чат и список участников -->
+            <!-- ПРАВАЯ ПАНЕЛЬ -->
             <div class="right-panel">
-                <!-- Список участников -->
                 <div class="sidebar" id="participantsListSidebar">
                     <div class="sidebar-header">
                         <h3 class="sidebar-title">Участники (<span id="participantsCount">1</span>)</h3>
                     </div>
                     <div class="participants-list" id="participantsList">
-                        <!-- Локальный пользователь в списке -->
                         <div class="participant-list-item local-user" id="list-item-local">
                             <div class="participant-info">
                                 <div class="participant-details">
                                     <div class="participant-name">{{ user_name or 'Вы' }}</div>
                                 </div>
                                 <div class="participant-controls">
-                                    <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="status-icon" id="listAudioStatus">
-                                    <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="status-icon" id="listVideoStatus">
+                                    <img src="{{ url_for('static', filename='images/mic-off.png') }}" class="status-icon" id="listAudioStatus">
+                                    <img src="{{ url_for('static', filename='images/camera-off.png') }}" class="status-icon" id="listVideoStatus">
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Чат -->
                 <div class="sidebar" id="chatSidebar" style="display: none;">
                     <div class="sidebar-header">
                         <h3 class="sidebar-title">Чат встречи</h3>
                     </div>
                     <div class="chat-messages" id="chatMessages">
-                        <div class="empty-state">
-                            <p>Нет сообщений</p>
-                        </div>
+                        <div class="empty-state"><p>Нет сообщений</p></div>
                     </div>
                     <div class="chat-input-container">
                         <textarea class="chat-input" id="chatInput" placeholder="Введите сообщение..." rows="1"></textarea>
@@ -339,42 +193,25 @@
             </div>
         </div>
 
-        <!-- Панель управления -->
+        <!-- КНОПКИ -->
         <div class="control-panel">
-            <button class="control-btn muted" id="toggleAudio" title="Микрофон">
-                <img src="{{ url_for('static', filename='images/mic-off.png') }}" alt="Микрофон" class="control-icon" id="toggleAudioIcon">
-            </button>
-            
-            <button class="control-btn muted" id="toggleVideo" title="Камера">
-                <img src="{{ url_for('static', filename='images/camera-off.png') }}" alt="Камера" class="control-icon" id="toggleVideoIcon">
-            </button>
-            
-            <button class="control-btn" id="toggleScreen" title="Поделиться экраном">
-                <img src="{{ url_for('static', filename='images/screen-share.png') }}" alt="Демонстрация экрана" class="control-icon" id="toggleScreenIcon">
-            </button>
-
+            <button class="control-btn muted" id="toggleAudio"><img src="{{ url_for('static', filename='images/mic-off.png') }}" class="control-icon" id="toggleAudioIcon"></button>
+            <button class="control-btn muted" id="toggleVideo"><img src="{{ url_for('static', filename='images/camera-off.png') }}" class="control-icon" id="toggleVideoIcon"></button>
+            <button class="control-btn" id="toggleScreen"><img src="{{ url_for('static', filename='images/screen-share.png') }}" class="control-icon" id="toggleScreenIcon"></button>
             <div class="control-separator"></div>
-
-            <button class="control-btn" id="toggleWhiteboardBtn" title="Доска">
-                <img src="{{ url_for('static', filename='images/whiteboard-new-icon.png') }}" alt="Доска" class="control-icon">
-            </button>
-
-            <button class="control-btn" id="toggleChatBtn" title="Чат">
-                <img src="{{ url_for('static', filename='images/chat-new-icon.png') }}" alt="Чат" class="control-icon">
-            </button>
-
+            <button class="control-btn" id="toggleWhiteboardBtn"><img src="{{ url_for('static', filename='images/whiteboard-new-icon.png') }}" class="control-icon"></button>
+            <button class="control-btn" id="toggleChatBtn"><img src="{{ url_for('static', filename='images/chat-new-icon.png') }}" class="control-icon"></button>
             <div class="control-separator"></div>
-            
-            <button class="control-btn danger" id="leaveCall" title="Покинуть встречу">
-                <img src="{{ url_for('static', filename='images/leave-call.png') }}" alt="Покинуть встречу" class="control-icon">
-            </button>
+            <button class="control-btn danger" id="leaveCall"><img src="{{ url_for('static', filename='images/leave-call.png') }}" class="control-icon"></button>
         </div>
     </main>
 
-    <!-- SocketIO клиент -->
-    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <!-- Передача истории чата -->
+    <script>
+        window.initialChatHistory = {{ chat_history | tojson | safe }};
+    </script>
     
-    <!-- Основной скрипт конференции -->
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='js/conference.js') }}"></script>
 </body>
 </html>

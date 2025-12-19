@@ -1,4 +1,4 @@
-/* conference.css - исправленная версия */
+/* conference.css - Стабильная версия */
 .conference-main {
     padding: 0 !important;
     align-items: stretch !important;
@@ -73,25 +73,62 @@
 }
 
 .video-placeholder {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* СЛОЙ 1: Видео (лежит под аватаром, но над фоном) */
+.video-participant-card .remote-video {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
+    object-fit: cover;
+    z-index: 1;
+    background: transparent;
+    
+    /* Изначально видео прозрачное, чтобы не показывать черный квадрат загрузки */
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+/* Когда видео готово, мы даем ему этот класс */
+.video-participant-card .remote-video.active {
+    opacity: 1;
+}
+
+/* СЛОЙ 2: Аватарка (лежит поверх всего) */
+.participant-avatar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #555;
+    border: 3px solid rgba(255, 255, 255, 0.5);
+    z-index: 2; /* Самый верхний слой */
+    
+    /* Аватарка видна по умолчанию */
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
 }
 
-/* Видео в левом блоке */
-.video-participant-card .remote-video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 10px;
-    background-color: #000;
+/* Класс для скрытия аватарки (когда видео пошло) */
+.participant-avatar.hidden {
+    opacity: 0;
 }
 
 /* Стиль для локального видео в миниатюре */
@@ -101,20 +138,6 @@
     object-fit: contain;
     border-radius: 10px;
     background-color: #000;
-}
-
-.participant-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-    border: 3px solid rgba(255, 255, 255, 0.8);
 }
 
 .participant-name {
@@ -131,6 +154,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    z-index: 3;
 }
 
 .participant-status {
@@ -143,6 +167,7 @@
     padding: 4px 8px;
     border-radius: 15px;
     backdrop-filter: blur(10px);
+    z-index: 3;
 }
 
 .status-icon {
@@ -198,11 +223,13 @@
     object-fit: contain;
 }
 
+/* Вернули iframe */
 #whiteboardFrame {
     width: 100%;
     height: 100%;
     border: none;
     border-radius: 8px;
+    background: white;
 }
 
 #mainVideoPlaceholder {
@@ -242,7 +269,7 @@
     color: white;
 }
 
-/* Правая панель - чат и список участников */
+/* Правая панель */
 .right-panel {
     width: 300px;
     min-width: 250px;
@@ -347,14 +374,6 @@
     transition: opacity 0.2s ease;
 }
 
-.participant-controls .status-icon:hover {
-    opacity: 1;
-}
-
-.participant-controls .status-icon.muted {
-    opacity: 0.5;
-}
-
 /* Стили для чата */
 .chat-messages {
     flex: 1;
@@ -377,14 +396,8 @@
 }
 
 @keyframes messageAppear {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .own-message {
@@ -404,13 +417,28 @@
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+/* Разделитель даты в чате */
+.chat-date-separator {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+    position: relative;
+}
+
+.chat-date-separator span {
+    background: rgba(0, 0, 0, 0.1);
+    color: #666;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
 .message-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    align-items: baseline;
+    margin-bottom: 4px;
 }
 
 .message-sender {
@@ -418,25 +446,10 @@
     font-size: 12px;
 }
 
-.own-message .message-sender {
-    color: #1976d2;
-}
-
-.remote-message .message-sender {
-    color: #666;
-}
-
 .message-time {
-    font-size: 11px;
-    opacity: 0.7;
-}
-
-.own-message .message-time {
-    color: #1976d2;
-}
-
-.remote-message .message-time {
-    color: #888;
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 8px;
 }
 
 .message-text {
@@ -444,8 +457,6 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-    max-width: 100%;
-    overflow: hidden;
 }
 
 .chat-input-container {
@@ -506,17 +517,13 @@
     transform: translateY(-50%) scale(1.05);
 }
 
-.send-btn:active {
-    transform: translateY(-50%) scale(0.95);
-}
-
 .send-btn img {
     width: 18px;
     height: 18px;
     filter: brightness(0) invert(1);
 }
 
-/* Панель управления - овальная форма */
+/* Панель управления */
 .control-panel {
     position: fixed;
     bottom: 20px;
@@ -558,10 +565,6 @@
     background: #ff5c5c !important;
 }
 
-.control-btn.muted:hover {
-    background: #ff3b3b !important;
-}
-
 .control-btn.active {
     background: #4CAF50 !important;
 }
@@ -576,10 +579,6 @@
 
 .control-btn.danger .control-icon {
     filter: brightness(0) invert(1) !important;
-}
-
-.control-btn.danger:hover {
-    background: #d32f2f !important;
 }
 
 .control-icon {
@@ -616,17 +615,6 @@
     justify-content: center;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     z-index: 100;
-    transition: all 0.3s ease;
-}
-
-.expand-left-panel:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-50%) scale(1.1);
-}
-
-.expand-left-panel img {
-    width: 20px;
-    height: 20px;
 }
 
 /* Адаптивность */
@@ -679,150 +667,5 @@
         bottom: 15px;
         min-width: 300px;
         border-radius: 40px;
-    }
-    
-    .control-btn {
-        width: 42px;
-        height: 42px;
-    }
-    
-    .control-icon {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .main-video-container {
-        min-height: 300px;
-    }
-}
-
-/* Стили для скроллбаров */
-.participants-list::-webkit-scrollbar,
-.chat-messages::-webkit-scrollbar,
-.left-panel::-webkit-scrollbar {
-    width: 4px;
-}
-
-.participants-list::-webkit-scrollbar-track,
-.chat-messages::-webkit-scrollbar-track,
-.left-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
-}
-
-.participants-list::-webkit-scrollbar-thumb,
-.chat-messages::-webkit-scrollbar-thumb,
-.left-panel::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-}
-
-.participants-list::-webkit-scrollbar-thumb:hover,
-.chat-messages::-webkit-scrollbar-thumb:hover,
-.left-panel::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-/* Empty state */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    text-align: center;
-    color: #666;
-}
-
-.empty-state p {
-    margin: 0;
-    font-size: 14px;
-    opacity: 0.7;
-}
-
-/* Дополнительные стили для медиа подсказки */
-.media-prompt {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-radius: 15px;
-    padding: 15px 20px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
-    z-index: 1001;
-    max-width: 300px;
-    animation: slideInRight 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.media-prompt.hidden {
-    display: none;
-}
-
-.media-prompt p {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    color: #333;
-    line-height: 1.4;
-}
-
-.media-prompt-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.prompt-btn {
-    padding: 8px 15px;
-    border-radius: 20px;
-    border: none;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    flex: 1;
-}
-
-.prompt-btn.enable {
-    background: #4CAF50;
-    color: white;
-}
-
-.prompt-btn.dismiss {
-    background: #f0f0f0;
-    color: #666;
-}
-
-.prompt-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.prompt-btn.enable:hover {
-    background: #45a049;
-}
-
-.prompt-btn.dismiss:hover {
-    background: #e0e0e0;
-}
-
-@keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Адаптивность для медиа подсказки */
-@media (max-width: 768px) {
-    .media-prompt {
-        top: 10px;
-        right: 10px;
-        left: 10px;
-        max-width: none;
     }
 }

@@ -197,11 +197,11 @@
                         <div class="error-message" id="passwordError"></div>
                     </div>
 
-                    <div class="form-group">
+                    <!--<div class="form-group">
                         <label class="checkbox-label">
                             <input type="checkbox" id="rememberMe"> Запомнить меня
                         </label>
-                    </div>
+                    </div>-->
 
                     <button type="submit" class="auth-btn" id="loginBtn">Войти</button>
 
@@ -383,7 +383,7 @@
                 }
                 
                 console.log(`  пароль: ${formData.password || 'не указан'}`);
-                console.log(`  запомнить меня: ${formData.remember_me ? 'да' : 'нет'}`);
+                //console.log(`  запомнить меня: ${formData.remember_me ? 'да' : 'нет'}`);
             }
             
             // Для регистрации
@@ -565,10 +565,10 @@
             }
 
             // Добавляем remember_me если нужно
-            const rememberMe = document.getElementById('rememberMe').checked;
+            /*const rememberMe = document.getElementById('rememberMe').checked;
             if (rememberMe) {
                 login_info.remember_me = true;
-            }
+            }*/
 
             // Логируем данные перед отправкой
             logAuthData(login_info, 'login');
