@@ -489,7 +489,7 @@
                 event.preventDefault();
             }
             console.log(`[JOIN_MEETING] meeting.id: ${meetingId}`);
-            showToast('Присоединение', `Подключаемся к встрече: ${meetingId}`, 'success');
+            window.open(`${window.location.origin}/conference/${meetingId}`)
         }
         
         // Функция для копирования ссылки на встречу
@@ -498,7 +498,7 @@
                 event.stopPropagation();
                 event.preventDefault();
             }
-            navigator.clipboard.writeText(`${window.location.origin}/join/${meetingId}`).then(() => {
+            navigator.clipboard.writeText(`${window.location.origin}/conference/${meetingId}`).then(() => {
                 console.log(`[COPY_LINK] meeting.id: ${meetingId}`);
                 showToast('Ссылка скопирована!', ``, 'success');
             }).catch(err => {
@@ -842,7 +842,7 @@
             };
             
             logUserInput('JOIN_MEETING', formData);
-            
+            window.open(`${window.location.origin}/conference/${formData['meeting.id']}`)
             showToast('Присоединение', `Подключаемся к встрече`, 'success');
             closeJoinModal();
         });

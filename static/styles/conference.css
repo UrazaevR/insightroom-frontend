@@ -1,68 +1,102 @@
-/* conference.css */
+/* conference.css - Полная версия с Excalidraw и чатом */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    min-height: 100vh;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+/* Анимированный фон */
+.animated-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #0f3460, #1a1a2e, #16213e);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    z-index: -1;
+}
+
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Шапка */
+.header {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-link {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.meeting-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 14px;
+    color: #a0a0c0;
+}
+
+/* Основной layout */
 .conference-container {
     padding: 20px;
-    min-height: 100vh;
-}
-
-.participants-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 15px;
-    margin-bottom: 80px;
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.participant-card {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
-    overflow: hidden;
-<<<<<<< Updated upstream
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-=======
-    width: 100%;
 }
 
 .conference-layout {
     display: flex;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 180px);
     gap: 20px;
-    padding: 20px;
->>>>>>> Stashed changes
-    position: relative;
-    aspect-ratio: 16/9;
-    transition: all 0.3s ease;
-    border: 3px solid transparent;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
-<<<<<<< Updated upstream
-/* Подсветка когда пользователь говорит */
-.participant-card.speaking {
-    border-color: #4CAF50;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-}
-
-.video-container {
-    width: 100%;
-    height: 100%;
-    background: #000;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-=======
-/* Левая панель - видео участников */
+/* Левая панель - миниатюры */
 .left-panel {
-    width: 310px;
-    min-width: 250px;
-    background: rgba(255, 255, 255, 0.95);
+    width: 320px;
+    min-width: 280px;
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
-    border-radius: 15px;
+    border-radius: 20px;
     padding: 20px;
     overflow-y: auto;
     transition: all 0.3s ease;
     flex-shrink: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .left-panel.collapsed {
@@ -74,19 +108,43 @@
 }
 
 .video-panel-header {
-    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .video-panel-title {
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: #fff;
     margin: 0;
 }
 
+.toggle-panel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.toggle-panel-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.toggle-panel-btn img {
+    width: 20px;
+    height: 20px;
+    filter: invert(1);
+}
+
 .video-participants-grid {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 15px;
 }
 
@@ -94,18 +152,16 @@
     position: relative;
     width: 100%;
     height: 180px;
-    min-height: 180px;
-    background: #f8f9fa;
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
     overflow: hidden;
     border: 2px solid transparent;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .video-participant-card.speaking {
     border-color: #4CAF50;
-    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
 }
 
 .video-placeholder {
@@ -117,26 +173,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 10px;
-}
-
-/* ИСПРАВЛЕНИЕ: Видео в левом блоке должно быть contain, а не cover */
-.video-participant-card .remote-video {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Изменено с cover на contain */
-    border-radius: 10px;
-    background-color: #000; /* Добавляем черный фон для правильного отображения */
-}
-
-/* Стиль для локального видео в миниатюре */
-#localVideoThumbnail {
-    width: 100%;
-    height: 100%;
-    object-fit: contain; /* Изменено с cover на contain */
-    border-radius: 10px;
-    background-color: #000; /* Добавляем черный фон для правильного отображения */
+    border-radius: 13px;
 }
 
 .participant-avatar {
@@ -147,21 +184,28 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     color: #333;
     border: 3px solid rgba(255, 255, 255, 0.8);
 }
 
+.remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 13px;
+}
+
 .participant-name {
     position: absolute;
-    bottom: 8px;
-    left: 8px;
+    bottom: 10px;
+    left: 10px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
     backdrop-filter: blur(10px);
     max-width: calc(100% - 80px);
     overflow: hidden;
@@ -171,12 +215,12 @@
 
 .participant-status {
     position: absolute;
-    bottom: 8px;
-    right: 8px;
+    bottom: 10px;
+    right: 10px;
     display: flex;
     gap: 6px;
     background: rgba(0, 0, 0, 0.7);
-    padding: 4px 8px;
+    padding: 5px 10px;
     border-radius: 15px;
     backdrop-filter: blur(10px);
 }
@@ -191,72 +235,69 @@
     opacity: 0.5;
 }
 
-/* Центральная панель - главное видео (сделана уже на 20px) */
+/* Кнопка разворачивания левой панели */
+.expand-left-panel {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.expand-left-panel:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.expand-left-panel img {
+    width: 20px;
+    height: 20px;
+    filter: invert(1);
+}
+
+/* Центральная панель */
 .center-panel {
     flex: 1;
-    min-width: 380px; /* Уменьшено с 400px до 380px */
-    max-width: calc(100% - 600px); /* Ограничение максимальной ширины */
+    min-width: 500px;
     display: flex;
     flex-direction: column;
+    gap: 20px;
     transition: all 0.3s ease;
-    position: relative;
 }
 
 .center-panel.expanded {
     margin-left: 0;
     flex: 1 1 auto;
-    max-width: 100%; /* На мобильных занимает всю ширину */
+    max-width: 100%;
 }
 
 .main-video-container {
     flex: 1;
-    background: #000;
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 100%;
-    min-height: 400px;
->>>>>>> Stashed changes
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.user-video, .remote-video {
-    width: 100%;
-    height: 100%;
-<<<<<<< Updated upstream
-    object-fit: cover;
-}
-
-/* Заглушка с аватаром */
-.video-placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.placeholder-content {
-    text-align: center;
-=======
-    object-fit: contain;
-}
-
-.screen-share-video {
+.main-video, .screen-share-video {
     width: 100%;
     height: 100%;
     object-fit: contain;
-}
-
-#whiteboardFrame {
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 8px;
+    border-radius: 18px;
 }
 
 #mainVideoPlaceholder {
@@ -272,7 +313,7 @@
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     color: white;
     z-index: 1;
->>>>>>> Stashed changes
+    border-radius: 18px;
 }
 
 .user-avatar.large {
@@ -285,20 +326,6 @@
     justify-content: center;
     font-size: 36px;
     font-weight: bold;
-<<<<<<< Updated upstream
-    font-size: 48px;
-    background: #4ECDC4;
-}
-
-.participant-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-    color: white;
-    padding: 12px 15px;
-=======
     color: #333;
     margin-bottom: 20px;
     border: 6px solid rgba(255, 255, 255, 0.8);
@@ -311,92 +338,153 @@
     color: white;
 }
 
-/* Правая панель - чат и список участников */
+/* Excalidraw iframe */
+#whiteboardFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 18px;
+}
+
+/* Контрольная панель под основным видео */
+.main-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.main-control-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.main-control-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.main-control-btn.active {
+    background: #4CAF50;
+}
+
+.main-control-btn img {
+    width: 20px;
+    height: 20px;
+    filter: invert(1);
+}
+
+/* Правая панель */
 .right-panel {
-    width: 300px;
-    min-width: 250px;
+    width: 320px;
+    min-width: 280px;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
+/* Вкладки */
+.sidebar-tabs {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px 15px 0 0;
+    overflow: hidden;
+    margin-bottom: -1px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px;
+    background: none;
+    border: none;
+    color: #a0a0c0;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-bottom: 2px solid #667eea;
+}
+
+/* Боковые панели */
 .sidebar {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
-    border-radius: 15px;
+    border-radius: 0 0 15px 15px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100%;
+    height: calc(100% - 50px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+.sidebar.active {
+    display: flex;
 }
 
 .sidebar-header {
     padding: 20px;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
->>>>>>> Stashed changes
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-<<<<<<< Updated upstream
-.participant-name {
-    font-weight: 600;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.user-avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: bold;
-    font-size: 12px;
-=======
 .sidebar-title {
     font-size: 18px;
     font-weight: 600;
-    color: #333;
+    color: #fff;
     margin: 0;
 }
 
-/* Стили для списка участников */
+/* Список участников */
 .participants-list {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
-    max-height: calc(100vh - 320px);
 }
 
 .participant-list-item {
-    padding: 12px;
+    padding: 15px;
     margin-bottom: 10px;
-    background: rgba(248, 249, 250, 0.8);
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
-    border: 1px solid rgba(222, 226, 230, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
 }
 
 .participant-list-item:hover {
-    background: rgba(233, 236, 239, 0.9);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
 }
 
 .participant-list-item.local-user {
-    background: rgba(52, 152, 219, 0.05);
-    border-color: rgba(52, 152, 219, 0.2);
+    background: rgba(102, 126, 234, 0.1);
+    border-color: rgba(102, 126, 234, 0.3);
 }
 
 .participant-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 100%;
 }
 
 .participant-details {
@@ -407,7 +495,7 @@
 .participant-list-item .participant-name {
     position: static;
     background: none;
-    color: #2c3e50;
+    color: #fff;
     font-size: 14px;
     font-weight: 500;
     padding: 0;
@@ -418,34 +506,28 @@
 }
 
 .participant-list-item.local-user .participant-name {
-    color: #2980b9;
+    color: #667eea;
     font-weight: 600;
 }
 
 .participant-controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .participant-controls .status-icon {
     width: 16px;
     height: 16px;
-    margin-left: 0;
-    filter: none;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
+    filter: invert(1);
+    opacity: 0.7;
 }
 
 .participant-controls .status-icon:hover {
     opacity: 1;
 }
 
-.participant-controls .status-icon.muted {
-    opacity: 0.5;
-}
-
-/* Стили для чата */
+/* Чат */
 .chat-messages {
     flex: 1;
     padding: 20px;
@@ -453,7 +535,6 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: #f8f9fa;
 }
 
 .message {
@@ -466,22 +547,20 @@
     position: relative;
 }
 
-/* Убираем градиент, делаем однотонные блоки */
 .own-message {
-    background: #e3f2fd; /* Светло-голубой фон для своих сообщений */
-    color: #1565c0;
+    background: rgba(102, 126, 234, 0.2);
+    color: #fff;
     margin-left: auto;
-    border: 1px solid #bbdefb;
+    border: 1px solid rgba(102, 126, 234, 0.4);
     border-bottom-right-radius: 4px;
 }
 
 .remote-message {
-    background: #ffffff; /* Белый фон для чужих сообщений */
-    color: #333;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
     margin-right: auto;
-    border: 1px solid #e0e0e0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-bottom-left-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .message-header {
@@ -490,7 +569,7 @@
     align-items: center;
     margin-bottom: 6px;
     padding-bottom: 4px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .message-sender {
@@ -499,11 +578,11 @@
 }
 
 .own-message .message-sender {
-    color: #1976d2;
+    color: #667eea;
 }
 
 .remote-message .message-sender {
-    color: #666;
+    color: #a0a0c0;
 }
 
 .message-time {
@@ -512,86 +591,76 @@
 }
 
 .own-message .message-time {
-    color: #1976d2;
+    color: #667eea;
 }
 
 .remote-message .message-time {
-    color: #888;
+    color: #a0a0c0;
 }
 
 .message-text {
     font-size: 14px;
     line-height: 1.5;
-    white-space: pre-wrap; /* Сохраняем переносы строк */
-    word-break: break-word; /* Переносим длинные слова */
-    max-width: 100%;
-    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
-/* Убираем system-message если не используется */
-.system-message {
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
     text-align: center;
-    background: rgba(108, 117, 125, 0.1);
-    color: #6c757d;
-    padding: 10px;
-    border-radius: 8px;
-    margin-bottom: 15px;
-    font-size: 12px;
-    font-style: italic;
+    color: #a0a0c0;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.7;
 }
 
 .chat-input-container {
-    padding: 15px 20px;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    background: #ffffff;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     position: relative;
     display: flex;
-    gap: 10px;
-    align-items: center; /* Изменено с flex-end на center */
+    align-items: center;
 }
 
-/* Меняем input на textarea для поддержки многострочного ввода */
 .chat-input {
     flex: 1;
     padding: 12px 50px 12px 15px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 25px;
     font-size: 14px;
-    background: #f8f9fa;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
     transition: all 0.3s ease;
     font-family: inherit;
-    resize: none; /* Убираем стандартный ресайз */
+    resize: none;
     min-height: 44px;
-    max-height: 120px; /* Максимальная высота перед появлением скролла */
-    overflow-y: auto; /* Скролл внутри textarea если много текста */
+    max-height: 120px;
+    overflow-y: auto;
     line-height: 1.5;
 }
 
 .chat-input:focus {
     outline: none;
     border-color: #667eea;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
 }
 
-/* Псевдоэлемент для скроллбара в textarea */
-.chat-input::-webkit-scrollbar {
-    width: 4px;
-}
-
-.chat-input::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
-}
-
-.chat-input::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
+.chat-input::placeholder {
+    color: #a0a0c0;
 }
 
 .send-btn {
     position: absolute;
-    right: 25px; /* Уменьшено с 30px */
+    right: 25px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -603,218 +672,50 @@
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
->>>>>>> Stashed changes
-    flex-shrink: 0;
     top: 50%;
-    transform: translateY(-50%); /* Центрируем по вертикали */
+    transform: translateY(-50%);
 }
 
-<<<<<<< Updated upstream
-.participant-status {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-}
-
-.status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #4CAF50;
-    transition: all 0.3s ease;
-=======
 .send-btn:hover {
     background: #5a6fd8;
-    transform: translateY(-50%) scale(1.05); /* Сохраняем центрирование при ховере */
+    transform: translateY(-50%) scale(1.05);
 }
 
 .send-btn:active {
-    transform: translateY(-50%) scale(0.95); /* Сохраняем центрирование при клике */
->>>>>>> Stashed changes
+    transform: translateY(-50%) scale(0.95);
 }
 
-.status-indicator.muted {
-    background: #f44336;
+.send-btn img {
+    width: 18px;
+    height: 18px;
+    filter: invert(1);
 }
 
-<<<<<<< Updated upstream
 /* Панель управления */
-=======
-/* Стили для скроллбара в чате - ИСПРАВЛЕННЫЕ */
-.chat-messages::-webkit-scrollbar {
-    width: 6px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 3px;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.15);
-    border-radius: 3px;
-    transition: background 0.3s ease;
-}
-
-.chat-messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.25);
-}
-
-/* Анимация появления сообщения */
-@keyframes messageAppear {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Адаптивность для чата */
-@media (max-width: 768px) {
-    .chat-messages {
-        padding: 15px;
-        gap: 8px;
-    }
-    
-    .message {
-        padding: 10px 12px;
-        max-width: 90%;
-    }
-    
-    .message-text {
-        font-size: 13px;
-    }
-    
-    .chat-input-container {
-        padding: 12px 15px;
-    }
-    
-    .chat-input {
-        padding: 10px 40px 10px 12px;
-        font-size: 13px;
-        min-height: 40px;
-        max-height: 100px;
-    }
-    
-    .send-btn {
-        right: 20px; /* Уменьшено с 25px */
-        width: 34px;
-        height: 34px;
-    }
-    
-    .send-btn img {
-        width: 16px;
-        height: 16px;
-    }
-}
-
-@media (max-width: 480px) {
-    .chat-messages {
-        padding: 12px 10px;
-        gap: 6px;
-    }
-    
-    .message {
-        padding: 8px 10px;
-        max-width: 92%;
-    }
-    
-    .message-text {
-        font-size: 12px;
-    }
-    
-    .chat-input-container {
-        padding: 10px 12px;
-    }
-    
-    .chat-input {
-        padding: 8px 35px 8px 10px;
-        font-size: 12px;
-        min-height: 38px;
-        max-height: 80px;
-    }
-    
-    .send-btn {
-        right: 17px; /* Уменьшено с 22px */
-        width: 32px;
-        height: 32px;
-    }
-    
-    .send-btn img {
-        width: 14px;
-        height: 14px;
-    }
-}
-
-/* Кнопка разворачивания левой панели */
-.expand-left-panel {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    z-index: 100;
-    transition: all 0.3s ease;
-}
-
-.expand-left-panel:hover {
-    background: rgba(255, 255, 255, 1);
-    transform: translateY(-50%) scale(1.1);
-}
-
-.expand-left-panel img {
-    width: 20px;
-    height: 20px;
-}
-
-/* Панель управления - ВОССТАНАВЛИВАЮ ПРЕЖНИЙ РАЗМЕР и делаю ОВАЛЬНОЙ */
->>>>>>> Stashed changes
 .control-panel {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.95);
-<<<<<<< Updated upstream
-    backdrop-filter: blur(10px);
-    border-radius: 50px;
-    padding: 15px 25px;
-    display: flex;
-    gap: 15px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
-=======
+    background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(20px);
-    border-radius: 50px; /* Изменено с 25px на 50px для овальной формы */
-    padding: 12px 30px; /* Увеличено с 24px до 30px для овальной формы */
+    border-radius: 50px;
+    padding: 15px 35px;
     display: flex;
     align-items: center;
-    gap: 16px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    gap: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     z-index: 1000;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    min-width: 400px;
->>>>>>> Stashed changes
+    min-width: 450px;
 }
 
 .control-btn {
-    width: 50px;
-    height: 50px;
+    width: 55px;
+    height: 55px;
     border-radius: 50%;
     border: none;
-    background: #f5f5f5;
+    background: rgba(255, 255, 255, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -824,17 +725,10 @@
 
 .control-btn:hover {
     transform: scale(1.1);
-    background: #e0e0e0;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .control-btn.muted {
-<<<<<<< Updated upstream
-    background: #f44336 !important;
-}
-
-.control-btn.active {
-    background: #667eea !important;
-=======
     background: #ff5c5c !important;
 }
 
@@ -848,18 +742,14 @@
 
 .control-btn.active .control-icon {
     filter: brightness(0) invert(1) !important;
->>>>>>> Stashed changes
 }
 
 .control-btn.danger {
     background: #f44336 !important;
-<<<<<<< Updated upstream
-=======
 }
 
 .control-btn.danger .control-icon {
     filter: brightness(0) invert(1) !important;
->>>>>>> Stashed changes
 }
 
 .control-btn.danger:hover {
@@ -867,10 +757,20 @@
 }
 
 .control-icon {
-<<<<<<< Updated upstream
     width: 24px;
     height: 24px;
     object-fit: contain;
+    transition: all 0.3s ease;
+}
+
+.control-btn.muted .control-icon {
+    filter: brightness(0) invert(1) !important;
+}
+
+.control-separator {
+    width: 1px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 /* Уведомления */
@@ -881,9 +781,9 @@
     transform: translateX(-50%);
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    padding: 12px 20px;
+    padding: 12px 25px;
     border-radius: 25px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
     z-index: 1001;
     font-weight: 600;
     color: #333;
@@ -901,281 +801,188 @@
     }
 }
 
-@media (max-width: 768px) {
-    .participants-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+@keyframes messageAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
     }
-    
-    .control-panel {
-        bottom: 10px;
-        padding: 10px 20px;
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
-    
-    .control-btn {
-        width: 45px;
-        height: 45px;
-=======
-    width: 22px;
-    height: 22px;
-    object-fit: contain;
-    transition: all 0.3s ease;
 }
 
-.control-btn.muted .control-icon {
-    filter: brightness(0) invert(1) !important;
+/* Скроллбары */
+::-webkit-scrollbar {
+    width: 6px;
 }
 
-.control-separator {
-    width: 1px;
-    height: 30px;
-    background: rgba(0, 0, 0, 0.1);
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
 }
 
-/* Empty state */
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    text-align: center;
-    color: #666;
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    transition: background 0.3s ease;
 }
 
-.empty-state p {
-    margin: 0;
-    font-size: 14px;
-    opacity: 0.7;
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Адаптивность */
 @media (max-width: 1200px) {
-    .left-panel {
+    .conference-layout {
+        height: calc(100vh - 160px);
+    }
+    
+    .left-panel, .right-panel {
         width: 280px;
     }
-    .right-panel {
-        width: 260px;
-    }
-    .center-panel {
-        min-width: 350px;
+    
+    .control-panel {
+        min-width: 400px;
+        padding: 12px 30px;
     }
 }
 
 @media (max-width: 1024px) {
-    .left-panel {
+    .conference-layout {
+        gap: 15px;
+        padding: 10px;
+    }
+    
+    .left-panel, .right-panel {
         width: 250px;
     }
-    .right-panel {
-        width: 240px;
-    }
+    
     .center-panel {
-        min-width: 300px;
+        min-width: 400px;
     }
+    
     .control-panel {
-        padding: 10px 25px; /* Адаптивный овал */
-        gap: 12px;
         min-width: 350px;
+        padding: 10px 25px;
+        gap: 15px;
     }
+    
     .control-btn {
-        width: 45px;
-        height: 45px;
-    }
-    .control-icon {
-        width: 20px;
-        height: 20px;
+        width: 50px;
+        height: 50px;
     }
 }
 
 @media (max-width: 900px) {
-    .left-panel {
+    .left-panel, .right-panel {
         width: 220px;
     }
-    .right-panel {
-        width: 200px;
-    }
+    
     .center-panel {
-        min-width: 250px;
+        min-width: 350px;
     }
 }
 
 @media (max-width: 768px) {
     .conference-layout {
+        flex-direction: column;
+        height: auto;
         gap: 10px;
-        padding: 10px;
-        height: calc(100vh - 140px);
     }
     
     .left-panel {
+        width: 100%;
+        height: 200px;
         position: absolute;
-        left: 10px;
-        top: 10px;
-        bottom: 10px;
+        left: 0;
+        top: 70px;
         z-index: 50;
-        width: 250px;
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-    
-    .left-panel.collapsed {
-        transform: translateX(-100%);
+        transform: translateY(-100%);
         opacity: 0;
     }
     
     .left-panel:not(.collapsed) {
-        transform: translateX(0);
+        transform: translateY(0);
         opacity: 1;
-    }
-    
-    .center-panel.expanded {
-        margin-left: 0;
-        flex: 1 1 auto;
-        max-width: 100%;
     }
     
     .expand-left-panel {
         display: flex;
+        left: 20px;
+        top: 80px;
+    }
+    
+    .center-panel {
+        min-width: 100%;
+        height: 300px;
     }
     
     .right-panel {
         width: 100%;
-        max-width: 280px;
+        height: 300px;
     }
     
     .control-panel {
-        padding: 8px 20px; /* Адаптивный овал для мобильных */
-        gap: 10px;
-        bottom: 15px;
-        min-width: 300px;
-        border-radius: 40px; /* Слегка уменьшен овал для мобильных */
+        position: relative;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        margin-top: 20px;
+        min-width: 100%;
+        border-radius: 20px;
+        justify-content: center;
     }
     
-    .control-btn {
-        width: 42px;
-        height: 42px;
-    }
-    
-    .control-icon {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .control-separator {
-        height: 25px;
-    }
-    
-    .main-video-container {
-        min-height: 300px;
->>>>>>> Stashed changes
-    }
-    
-    .user-avatar.large {
-        width: 80px;
-        height: 80px;
-<<<<<<< Updated upstream
-        font-size: 32px;
-    }
-=======
-        font-size: 28px;
-    }
-    
-    #mainUserName {
-        font-size: 18px;
-    }
-    
-    /* Корректируем видео в левом блоке для мобильных */
-    .video-participant-card .remote-video,
-    #localVideoThumbnail {
-        object-fit: contain;
+    .main-controls {
+        justify-content: space-around;
     }
 }
 
 @media (max-width: 480px) {
-    .right-panel {
-        width: 100%;
-        max-width: 250px;
+    .conference-container {
+        padding: 10px;
     }
     
-    .conference-layout {
-        padding: 5px;
-        gap: 5px;
-        height: calc(100vh - 160px);
+    .header .container {
+        padding: 0 10px;
+    }
+    
+    .meeting-info {
+        font-size: 12px;
+        gap: 10px;
     }
     
     .control-panel {
-        padding: 6px 15px; /* Адаптивный овал для маленьких экранов */
-        gap: 8px;
-        border-radius: 35px; /* Еще более овальная форма для маленьких экранов */
-        min-width: 250px;
-        bottom: 10px;
+        padding: 8px 15px;
+        gap: 10px;
+        border-radius: 15px;
     }
     
     .control-btn {
-        width: 38px;
-        height: 38px;
+        width: 45px;
+        height: 45px;
     }
     
     .control-icon {
-        width: 16px;
-        height: 16px;
-    }
-    
-    .control-separator {
+        width: 20px;
         height: 20px;
     }
     
-    .chat-input-container {
-        padding: 12px;
+    .center-panel {
+        height: 250px;
     }
     
-    .chat-input {
-        padding: 10px 14px;
+    .right-panel {
+        height: 250px;
     }
     
-    .send-btn {
-        width: 40px;
-        height: 40px;
+    .main-controls {
+        padding: 10px;
     }
     
-    .user-avatar.large {
-        width: 60px;
-        height: 60px;
-        font-size: 22px;
+    .main-control-btn {
+        padding: 8px 12px;
+        font-size: 12px;
     }
-    
-    #mainUserName {
-        font-size: 16px;
-    }
-    
-    .main-video-container {
-        min-height: 200px;
-    }
-}
-
-/* Стили для скроллбаров */
-.participants-list::-webkit-scrollbar,
-.chat-messages::-webkit-scrollbar,
-.left-panel::-webkit-scrollbar {
-    width: 4px;
-}
-
-.participants-list::-webkit-scrollbar-track,
-.chat-messages::-webkit-scrollbar-track,
-.left-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
-}
-
-.participants-list::-webkit-scrollbar-thumb,
-.chat-messages::-webkit-scrollbar-thumb,
-.left-panel::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-}
-
-.participants-list::-webkit-scrollbar-thumb:hover,
-.chat-messages::-webkit-scrollbar-thumb:hover,
-.left-panel::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
->>>>>>> Stashed changes
 }
