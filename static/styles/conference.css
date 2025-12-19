@@ -1,102 +1,32 @@
-/* conference.css - Полная версия с Excalidraw и чатом */
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    min-height: 100vh;
-    color: #fff;
-    overflow-x: hidden;
-}
-
-/* Анимированный фон */
-.animated-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
+/* conference.css - исправленная версия */
+.conference-main {
+    padding: 0 !important;
+    align-items: stretch !important;
+    height: 100vh;
+    overflow: hidden;
     width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, #0f3460, #1a1a2e, #16213e);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-    z-index: -1;
-}
-
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* Шапка */
-.header {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 15px 0;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
-.header .container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo-link {
-    font-size: 24px;
-    font-weight: 700;
-    color: #fff;
-    text-decoration: none;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.meeting-info {
-    display: flex;
-    gap: 20px;
-    align-items: center;
-    font-size: 14px;
-    color: #a0a0c0;
-}
-
-/* Основной layout */
-.conference-container {
-    padding: 20px;
 }
 
 .conference-layout {
     display: flex;
-    height: calc(100vh - 180px);
+    height: calc(100vh - 120px);
     gap: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    width: 100%;
 }
 
-/* Левая панель - миниатюры */
+/* Левая панель - видео участников */
 .left-panel {
     width: 320px;
-    min-width: 280px;
-    background: rgba(255, 255, 255, 0.05);
+    min-width: 250px;
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-radius: 20px;
+    border-radius: 15px;
     padding: 20px;
     overflow-y: auto;
     transition: all 0.3s ease;
     flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .left-panel.collapsed {
@@ -108,43 +38,19 @@ body {
 }
 
 .video-panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .video-panel-title {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: #333;
     margin: 0;
 }
 
-.toggle-panel-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 8px;
-    padding: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.toggle-panel-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.toggle-panel-btn img {
-    width: 20px;
-    height: 20px;
-    filter: invert(1);
-}
-
 .video-participants-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 15px;
 }
 
@@ -152,16 +58,18 @@ body {
     position: relative;
     width: 100%;
     height: 180px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
+    min-height: 180px;
+    background: #f8f9fa;
+    border-radius: 12px;
     overflow: hidden;
     border: 2px solid transparent;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .video-participant-card.speaking {
     border-color: #4CAF50;
-    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+    box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
 }
 
 .video-placeholder {
@@ -173,7 +81,26 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 13px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+}
+
+/* Видео в левом блоке */
+.video-participant-card .remote-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    background-color: #000;
+}
+
+/* Стиль для локального видео в миниатюре */
+#localVideoThumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    background-color: #000;
 }
 
 .participant-avatar {
@@ -184,28 +111,21 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     color: #333;
     border: 3px solid rgba(255, 255, 255, 0.8);
 }
 
-.remote-video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 13px;
-}
-
 .participant-name {
     position: absolute;
-    bottom: 10px;
-    left: 10px;
+    bottom: 8px;
+    left: 8px;
     background: rgba(0, 0, 0, 0.7);
     color: white;
-    padding: 5px 12px;
-    border-radius: 15px;
-    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
     backdrop-filter: blur(10px);
     max-width: calc(100% - 80px);
     overflow: hidden;
@@ -215,12 +135,12 @@ body {
 
 .participant-status {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
+    bottom: 8px;
+    right: 8px;
     display: flex;
     gap: 6px;
     background: rgba(0, 0, 0, 0.7);
-    padding: 5px 10px;
+    padding: 4px 8px;
     border-radius: 15px;
     backdrop-filter: blur(10px);
 }
@@ -235,44 +155,15 @@ body {
     opacity: 0.5;
 }
 
-/* Кнопка разворачивания левой панели */
-.expand-left-panel {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    transition: all 0.3s ease;
-}
-
-.expand-left-panel:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-50%) scale(1.1);
-}
-
-.expand-left-panel img {
-    width: 20px;
-    height: 20px;
-    filter: invert(1);
-}
-
-/* Центральная панель */
+/* Центральная панель - главное видео */
 .center-panel {
     flex: 1;
-    min-width: 500px;
+    min-width: 380px;
+    max-width: calc(100% - 620px);
     display: flex;
     flex-direction: column;
-    gap: 20px;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .center-panel.expanded {
@@ -283,21 +174,35 @@ body {
 
 .main-video-container {
     flex: 1;
-    background: rgba(0, 0, 0, 0.3);
+    background: #000;
     border-radius: 20px;
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
 }
 
-.main-video, .screen-share-video {
+.main-video {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    border-radius: 18px;
+}
+
+.screen-share-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+#whiteboardFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
 }
 
 #mainVideoPlaceholder {
@@ -313,7 +218,6 @@ body {
     background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     color: white;
     z-index: 1;
-    border-radius: 18px;
 }
 
 .user-avatar.large {
@@ -338,153 +242,71 @@ body {
     color: white;
 }
 
-/* Excalidraw iframe */
-#whiteboardFrame {
-    width: 100%;
-    height: 100%;
-    border: none;
-    border-radius: 18px;
-}
-
-/* Контрольная панель под основным видео */
-.main-controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.main-control-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 10px;
-    padding: 12px 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #fff;
-    font-size: 14px;
-    transition: all 0.3s ease;
-}
-
-.main-control-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-}
-
-.main-control-btn.active {
-    background: #4CAF50;
-}
-
-.main-control-btn img {
-    width: 20px;
-    height: 20px;
-    filter: invert(1);
-}
-
-/* Правая панель */
+/* Правая панель - чат и список участников */
 .right-panel {
-    width: 320px;
-    min-width: 280px;
+    width: 300px;
+    min-width: 250px;
     transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
-/* Вкладки */
-.sidebar-tabs {
-    display: flex;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px 15px 0 0;
-    overflow: hidden;
-    margin-bottom: -1px;
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 15px;
-    background: none;
-    border: none;
-    color: #a0a0c0;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-}
-
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.tab-btn.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border-bottom: 2px solid #667eea;
-}
-
-/* Боковые панели */
 .sidebar {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-radius: 0 0 15px 15px;
+    border-radius: 15px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: calc(100% - 50px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: none;
-}
-
-.sidebar.active {
-    display: flex;
+    height: 100%;
 }
 
 .sidebar-header {
     padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .sidebar-title {
     font-size: 18px;
     font-weight: 600;
-    color: #fff;
+    color: #333;
     margin: 0;
 }
 
-/* Список участников */
+/* Стили для списка участников */
 .participants-list {
     flex: 1;
     padding: 20px;
     overflow-y: auto;
+    max-height: calc(100vh - 320px);
 }
 
 .participant-list-item {
-    padding: 15px;
+    padding: 12px;
     margin-bottom: 10px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(248, 249, 250, 0.8);
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(222, 226, 230, 0.4);
     transition: all 0.3s ease;
 }
 
 .participant-list-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(233, 236, 239, 0.9);
     transform: translateY(-2px);
 }
 
 .participant-list-item.local-user {
-    background: rgba(102, 126, 234, 0.1);
-    border-color: rgba(102, 126, 234, 0.3);
+    background: rgba(52, 152, 219, 0.05);
+    border-color: rgba(52, 152, 219, 0.2);
 }
 
 .participant-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
 }
 
 .participant-details {
@@ -495,7 +317,7 @@ body {
 .participant-list-item .participant-name {
     position: static;
     background: none;
-    color: #fff;
+    color: #2c3e50;
     font-size: 14px;
     font-weight: 500;
     padding: 0;
@@ -506,28 +328,34 @@ body {
 }
 
 .participant-list-item.local-user .participant-name {
-    color: #667eea;
+    color: #2980b9;
     font-weight: 600;
 }
 
 .participant-controls {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .participant-controls .status-icon {
     width: 16px;
     height: 16px;
-    filter: invert(1);
-    opacity: 0.7;
+    margin-left: 0;
+    filter: none;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
 }
 
 .participant-controls .status-icon:hover {
     opacity: 1;
 }
 
-/* Чат */
+.participant-controls .status-icon.muted {
+    opacity: 0.5;
+}
+
+/* Стили для чата */
 .chat-messages {
     flex: 1;
     padding: 20px;
@@ -535,6 +363,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: #f8f9fa;
 }
 
 .message {
@@ -547,20 +376,32 @@ body {
     position: relative;
 }
 
+@keyframes messageAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .own-message {
-    background: rgba(102, 126, 234, 0.2);
-    color: #fff;
+    background: #e3f2fd;
+    color: #1565c0;
     margin-left: auto;
-    border: 1px solid rgba(102, 126, 234, 0.4);
+    border: 1px solid #bbdefb;
     border-bottom-right-radius: 4px;
 }
 
 .remote-message {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: #ffffff;
+    color: #333;
     margin-right: auto;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid #e0e0e0;
     border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .message-header {
@@ -569,7 +410,7 @@ body {
     align-items: center;
     margin-bottom: 6px;
     padding-bottom: 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .message-sender {
@@ -578,11 +419,11 @@ body {
 }
 
 .own-message .message-sender {
-    color: #667eea;
+    color: #1976d2;
 }
 
 .remote-message .message-sender {
-    color: #a0a0c0;
+    color: #666;
 }
 
 .message-time {
@@ -591,11 +432,11 @@ body {
 }
 
 .own-message .message-time {
-    color: #667eea;
+    color: #1976d2;
 }
 
 .remote-message .message-time {
-    color: #a0a0c0;
+    color: #888;
 }
 
 .message-text {
@@ -603,41 +444,27 @@ body {
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
-}
-
-.empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    text-align: center;
-    color: #a0a0c0;
-}
-
-.empty-state p {
-    margin: 0;
-    font-size: 14px;
-    opacity: 0.7;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .chat-input-container {
-    padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
+    padding: 15px 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    background: #ffffff;
     position: relative;
     display: flex;
+    gap: 10px;
     align-items: center;
 }
 
 .chat-input {
     flex: 1;
     padding: 12px 50px 12px 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 25px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
     font-size: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    background: #f8f9fa;
     transition: all 0.3s ease;
     font-family: inherit;
     resize: none;
@@ -650,17 +477,14 @@ body {
 .chat-input:focus {
     outline: none;
     border-color: #667eea;
-    background: rgba(255, 255, 255, 0.1);
+    background: #ffffff;
     box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
-}
-
-.chat-input::placeholder {
-    color: #a0a0c0;
 }
 
 .send-btn {
     position: absolute;
     right: 25px;
+    bottom: 15px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -672,6 +496,7 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    flex-shrink: 0;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -688,44 +513,45 @@ body {
 .send-btn img {
     width: 18px;
     height: 18px;
-    filter: invert(1);
+    filter: brightness(0) invert(1);
 }
 
-/* Панель управления */
+/* Панель управления - овальная форма */
 .control-panel {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(20px);
     border-radius: 50px;
-    padding: 15px 35px;
+    padding: 12px 30px;
     display: flex;
     align-items: center;
-    gap: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    gap: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    min-width: 450px;
+    min-width: 400px;
 }
 
 .control-btn {
-    width: 55px;
-    height: 55px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     border: none;
-    background: rgba(255, 255, 255, 0.1);
+    background: #f5f5f5;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .control-btn:hover {
-    transform: scale(1.1);
-    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.08);
+    background: #e0e0e0;
 }
 
 .control-btn.muted {
@@ -757,8 +583,8 @@ body {
 }
 
 .control-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
     transition: all 0.3s ease;
 }
@@ -769,220 +595,234 @@ body {
 
 .control-separator {
     width: 1px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.2);
+    height: 35px;
+    background: rgba(0, 0, 0, 0.1);
 }
 
-/* Уведомления */
-.media-notification {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 12px 25px;
-    border-radius: 25px;
-    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
-    z-index: 1001;
-    font-weight: 600;
-    color: #333;
-    animation: slideDown 0.3s ease;
+/* Кнопка разворачивания левой панели */
+.expand-left-panel {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    transition: all 0.3s ease;
 }
 
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
+.expand-left-panel:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-50%) scale(1.1);
 }
 
-@keyframes messageAppear {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Скроллбары */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-    transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+.expand-left-panel img {
+    width: 20px;
+    height: 20px;
 }
 
 /* Адаптивность */
-@media (max-width: 1200px) {
-    .conference-layout {
-        height: calc(100vh - 160px);
-    }
-    
-    .left-panel, .right-panel {
-        width: 280px;
-    }
-    
-    .control-panel {
-        min-width: 400px;
-        padding: 12px 30px;
-    }
-}
-
-@media (max-width: 1024px) {
-    .conference-layout {
-        gap: 15px;
-        padding: 10px;
-    }
-    
-    .left-panel, .right-panel {
-        width: 250px;
-    }
-    
-    .center-panel {
-        min-width: 400px;
-    }
-    
-    .control-panel {
-        min-width: 350px;
-        padding: 10px 25px;
-        gap: 15px;
-    }
-    
-    .control-btn {
-        width: 50px;
-        height: 50px;
-    }
-}
-
-@media (max-width: 900px) {
-    .left-panel, .right-panel {
-        width: 220px;
-    }
-    
-    .center-panel {
-        min-width: 350px;
-    }
-}
-
 @media (max-width: 768px) {
     .conference-layout {
-        flex-direction: column;
-        height: auto;
         gap: 10px;
+        padding: 10px;
+        height: calc(100vh - 140px);
     }
     
     .left-panel {
-        width: 100%;
-        height: 200px;
         position: absolute;
-        left: 0;
-        top: 70px;
+        left: 10px;
+        top: 10px;
+        bottom: 10px;
         z-index: 50;
-        transform: translateY(-100%);
+        width: 250px;
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    
+    .left-panel.collapsed {
+        transform: translateX(-100%);
         opacity: 0;
     }
     
     .left-panel:not(.collapsed) {
-        transform: translateY(0);
+        transform: translateX(0);
         opacity: 1;
+    }
+    
+    .center-panel.expanded {
+        margin-left: 0;
+        flex: 1 1 auto;
+        max-width: 100%;
     }
     
     .expand-left-panel {
         display: flex;
-        left: 20px;
-        top: 80px;
-    }
-    
-    .center-panel {
-        min-width: 100%;
-        height: 300px;
     }
     
     .right-panel {
         width: 100%;
-        height: 300px;
+        max-width: 280px;
     }
     
     .control-panel {
-        position: relative;
-        bottom: auto;
-        left: auto;
-        transform: none;
-        margin-top: 20px;
-        min-width: 100%;
-        border-radius: 20px;
-        justify-content: center;
-    }
-    
-    .main-controls {
-        justify-content: space-around;
-    }
-}
-
-@media (max-width: 480px) {
-    .conference-container {
-        padding: 10px;
-    }
-    
-    .header .container {
-        padding: 0 10px;
-    }
-    
-    .meeting-info {
-        font-size: 12px;
+        padding: 8px 20px;
         gap: 10px;
-    }
-    
-    .control-panel {
-        padding: 8px 15px;
-        gap: 10px;
-        border-radius: 15px;
+        bottom: 15px;
+        min-width: 300px;
+        border-radius: 40px;
     }
     
     .control-btn {
-        width: 45px;
-        height: 45px;
+        width: 42px;
+        height: 42px;
     }
     
     .control-icon {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
     }
     
-    .center-panel {
-        height: 250px;
+    .main-video-container {
+        min-height: 300px;
     }
-    
-    .right-panel {
-        height: 250px;
+}
+
+/* Стили для скроллбаров */
+.participants-list::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.left-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.participants-list::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track,
+.left-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+}
+
+.participants-list::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.left-panel::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.participants-list::-webkit-scrollbar-thumb:hover,
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.left-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Empty state */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.7;
+}
+
+/* Дополнительные стили для медиа подсказки */
+.media-prompt {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 15px;
+    padding: 15px 20px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.media-prompt.hidden {
+    display: none;
+}
+
+.media-prompt p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+}
+
+.media-prompt-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.prompt-btn {
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.prompt-btn.enable {
+    background: #4CAF50;
+    color: white;
+}
+
+.prompt-btn.dismiss {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.prompt-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.prompt-btn.enable:hover {
+    background: #45a049;
+}
+
+.prompt-btn.dismiss:hover {
+    background: #e0e0e0;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
     }
-    
-    .main-controls {
-        padding: 10px;
+    to {
+        opacity: 1;
+        transform: translateX(0);
     }
-    
-    .main-control-btn {
-        padding: 8px 12px;
-        font-size: 12px;
+}
+
+/* Адаптивность для медиа подсказки */
+@media (max-width: 768px) {
+    .media-prompt {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
     }
 }
