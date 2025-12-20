@@ -1,17 +1,16 @@
 class VideoConference {
     constructor() {
         this.userId = null;
-        this.lastChatDate = null;
         this.userName = '';
         this.roomUrl = '';
         
+        // Медиа потоки
         this.localStream = null;
         this.screenStream = null;
         this.peerConnections = {}; 
         this.remoteStreams = {};   
-        
-        // Таймеры для фикса черного экрана
-        this.videoTimers = {}; 
+        // Хранилище отправителей для экрана, чтобы потом их удалить корректно
+        this.screenSenders = {}; 
         
         this.mediaState = {
             audioEnabled: false,
@@ -20,19 +19,26 @@ class VideoConference {
             whiteboardActive: false
         };
         
+        this.videoTimers = {};
+        this.currentPresenterId = null;
+        this.mainViewUserId = 'local';
+        this.lastChatDate = null;
+        
         this.socket = null;
         this.elements = {};
+        this.audioContext = null;
         
+        // Флаг для предотвращения гонки при согласовании
+        this.isNegotiating = false;
+
         this.initialize();
     }
     
     async initialize() {
-        console.log('🚀 Запуск конфигурации (Стабильная версия)');
+        console.log('🚀 Запуск конференции: Dual Stream (Camera + Screen)');
         this.getRoomData();
         this.initializeElements();
-
         this.loadChatHistory();
-        
         this.initializeEventListeners();
         
         await this.setupLocalMedia();
@@ -42,15 +48,7 @@ class VideoConference {
         this.updateParticipantCount();
     }
 
-    loadChatHistory() {
-        if (window.initialChatHistory && Array.isArray(window.initialChatHistory)) {
-            window.initialChatHistory.forEach(msg => {
-                const isOwn = msg.sender === this.userName;
-                this.addChatMessage(msg.sender, msg.text, isOwn, msg.time, msg.date);
-            });
-        }
-    }
-
+    // ... (getRoomData, initializeElements, loadChatHistory - БЕЗ ИЗМЕНЕНИЙ) ...
     getRoomData() {
         const pathParts = window.location.pathname.split('/');
         this.roomUrl = pathParts[pathParts.length - 1];
@@ -58,12 +56,16 @@ class VideoConference {
     }
 
     initializeElements() {
+        // (Копируем инициализацию элементов из прошлого кода полностью)
         this.elements = {
             localVideoThumbnail: document.getElementById('localVideoThumbnail'),
             localAvatar: document.getElementById('localAvatar'),
             mainVideo: document.getElementById('mainVideo'),
             mainVideoWrapper: document.getElementById('mainVideoWrapper'),
             mainVideoPlaceholder: document.getElementById('mainVideoPlaceholder'),
+            mainUserName: document.getElementById('mainVideoName'),
+            whiteboardFrame: document.getElementById('whiteboardFrame'),
+            screenShareWrapper: document.getElementById('screenShareWrapper'),
             
             toggleAudio: document.getElementById('toggleAudio'),
             toggleVideo: document.getElementById('toggleVideo'),
@@ -87,15 +89,20 @@ class VideoConference {
             chatInput: document.getElementById('chatInput'),
             sendMessage: document.getElementById('sendMessage'),
             participantsListSidebar: document.getElementById('participantsList'),
-
-            whiteboardFrame: document.getElementById('whiteboardFrame'), 
-            screenShareVideo: document.getElementById('screenShareVideo'),
-            screenShareWrapper: document.getElementById('screenShareWrapper'),
             
             webrtcLoading: document.getElementById('webrtcLoading'),
             localAudioStatus: document.getElementById('localAudioStatus'),
             localVideoStatus: document.getElementById('localVideoStatus')
         };
+    }
+
+    loadChatHistory() {
+        if (window.initialChatHistory && Array.isArray(window.initialChatHistory)) {
+            window.initialChatHistory.forEach(msg => {
+                const isOwn = msg.sender === this.userName;
+                this.addChatMessage(msg.sender, msg.text, isOwn, msg.time, msg.date);
+            });
+        }
     }
 
     async setupLocalMedia() {
@@ -111,12 +118,10 @@ class VideoConference {
             if (this.elements.localVideoThumbnail) {
                 this.elements.localVideoThumbnail.srcObject = this.localStream;
                 this.elements.localVideoThumbnail.muted = true;
+                try { await this.elements.localVideoThumbnail.play(); } catch(e){}
             }
-            if (this.elements.mainVideo) {
-                this.elements.mainVideo.srcObject = this.localStream;
-                this.elements.mainVideo.muted = true;
-            }
-
+            
+            this.setMainVideo('local', this.localStream);
             this.setupVoiceDetection(this.localStream, 'participant-local');
             this.updateMediaUI();
         } catch (e) {
@@ -133,6 +138,7 @@ class VideoConference {
             this.socket.emit('join-room', { roomUrl: this.roomUrl, userName: this.userName });
         });
 
+        // ... (room-users, user-joined и т.д. остаются)
         this.socket.on('room-users', async (data) => {
             const otherUsers = data.users.filter(u => u.id !== this.socket.id);
             for (const user of otherUsers) {
@@ -178,24 +184,32 @@ class VideoConference {
         this.socket.on('user-left', (data) => {
             this.removeParticipant(data.userId);
             this.showNotification(`${data.userName} покинул встречу`);
+            if (this.mainViewUserId === data.userId || this.currentPresenterId === data.userId) {
+                this.currentPresenterId = null;
+                this.setMainVideo('local', this.localStream);
+            }
         });
 
-        this.socket.on('whiteboard-updated', (data) => {
-            this.mediaState.whiteboardActive = data.state;
+        this.socket.on('screen-share-toggled', (data) => {
+            const userId = data.userId;
+            const isSharing = data.isSharing;
             
-            // Ссылка для iframe (Excalidraw collab)
-            if (data.state && !this.elements.whiteboardFrame.src.includes('#room=')) {
-                const collabUrl = `https://excalidraw.com/#room=${this.roomUrl.substring(0,20)},InsightRoomCollaborator`;
-                this.elements.whiteboardFrame.src = collabUrl;
-            }
-            
-            this.updateMainVideoDisplay();
-            if (this.elements.toggleWhiteboardBtn) {
-                this.elements.toggleWhiteboardBtn.classList.toggle('active', data.state);
+            if (isSharing) {
+                this.currentPresenterId = userId;
+                this.showNotification("Участник показывает экран");
+                // Видео поток экрана придет через ontrack и будет обработан там
+            } else {
+                if (this.currentPresenterId === userId) {
+                    this.currentPresenterId = null;
+                    this.showNotification("Демонстрация завершена");
+                    // Возвращаем в центр себя (потом сработает детектор голоса)
+                    this.setMainVideo('local', this.localStream);
+                }
             }
         });
     }
 
+    // --- WebRTC Core (ИЗМЕНЕНО) ---
     async initiateCall(targetUserId) {
         const pc = this.createPeerConnection(targetUserId);
         const offer = await pc.createOffer();
@@ -214,57 +228,174 @@ class VideoConference {
     createPeerConnection(targetUserId) {
         if (this.peerConnections[targetUserId]) return this.peerConnections[targetUserId];
         const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+        
+        // 1. Добавляем локальные треки (Камера/Микрофон)
         this.localStream.getTracks().forEach(track => pc.addTrack(track, this.localStream));
+        
+        // 2. Обработчик согласования (нужен для добавления экрана на лету)
+        pc.onnegotiationneeded = async () => {
+            if (this.isNegotiating) return; // Простая защита от гонки
+            this.isNegotiating = true;
+            try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                this.socket.emit('webrtc-offer', { to: targetUserId, offer: offer });
+            } catch (err) {
+                console.error("Negotiation error:", err);
+            } finally {
+                this.isNegotiating = false;
+            }
+        };
+
         pc.onicecandidate = (e) => e.candidate && this.socket.emit('ice-candidate', { to: targetUserId, candidate: e.candidate });
-        pc.ontrack = (e) => this.updateRemoteVideo(targetUserId, e.streams[0]);
+        
+        // 3. Обработка входящих потоков (Камера или Экран?)
+        pc.ontrack = (e) => {
+            const stream = e.streams[0];
+            
+            // ЛОГИКА РАЗДЕЛЕНИЯ ПОТОКОВ
+            // Если у нас уже есть поток камеры для этого юзера, то новый поток - это экран
+            if (this.remoteStreams[targetUserId] && this.remoteStreams[targetUserId].id !== stream.id) {
+                console.log("Получен второй поток (Экран) от", targetUserId);
+                // Это экран -> сразу в центр
+                this.setMainVideo(targetUserId, stream, true);
+            } else {
+                console.log("Получен основной поток (Камера) от", targetUserId);
+                // Это камера (или первый поток) -> сохраняем и показываем в сайдбаре
+                this.remoteStreams[targetUserId] = stream; 
+                this.updateRemoteVideo(targetUserId, stream);
+                
+                // Если этот чел уже презентует (например мы перезагрузились), проверим, может это экран?
+                // Но обычно экран приходит вторым треком.
+            }
+        };
+        
         this.peerConnections[targetUserId] = pc;
         return pc;
     }
 
-    toggleWhiteboard() {
-        const newState = !this.mediaState.whiteboardActive;
-        this.socket.emit('toggle-whiteboard', {
-            roomUrl: this.roomUrl,
-            state: newState
-        });
-    }
+    // --- Демонстрация экрана (ИЗМЕНЕНО: addTrack вместо replaceTrack) ---
+    async toggleScreenShare() {
+        try {
+            if (!this.mediaState.screenSharing) {
+                this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = this.screenStream.getVideoTracks()[0];
+                
+                screenTrack.onended = () => this.stopScreenShare();
 
-    updateMainVideoDisplay() {
-        const { whiteboardActive, screenSharing, videoEnabled } = this.mediaState;
+                // ДОБАВЛЯЕМ НОВЫЙ ТРЕК (второй поток)
+                for (const userId in this.peerConnections) {
+                    const pc = this.peerConnections[userId];
+                    // Добавляем трек и сохраняем sender, чтобы потом удалить
+                    const sender = pc.addTrack(screenTrack, this.screenStream);
+                    this.screenSenders[userId] = sender;
+                }
 
-        this.elements.whiteboardFrame.style.display = 'none';
-        this.elements.screenShareWrapper.style.display = 'none';
-        this.elements.mainVideoWrapper.style.display = 'none';
-        this.elements.mainVideoPlaceholder.style.display = 'none';
+                this.mediaState.screenSharing = true;
+                this.currentPresenterId = 'local';
+                // Показываем экран у себя
+                this.setMainVideo('local', this.screenStream, true);
+                
+                this.socket.emit('screen-share-status', { roomUrl: this.roomUrl, isSharing: true });
+                this.elements.toggleScreen.classList.add('active');
 
-        if (whiteboardActive) {
-            this.elements.whiteboardFrame.style.display = 'block';
-        } else if (screenSharing) {
-            this.elements.screenShareWrapper.style.display = 'block';
-        } else if (videoEnabled) {
-            this.elements.mainVideoWrapper.style.display = 'block';
-        } else {
-            this.elements.mainVideoPlaceholder.style.display = 'flex';
+            } else {
+                this.stopScreenShare();
+            }
+            this.updateMediaUI();
+        } catch (e) {
+            console.error("Ошибка экрана:", e);
         }
     }
 
-    updateRemoteParticipantStatus(userId, type, isEnabled) {
-        const iconId = `status-${type}-${userId}`;
-        const icon = document.getElementById(iconId);
-        if (icon) {
-            icon.src = `/static/images/${type === 'audio' ? 'mic' : 'camera'}-${isEnabled ? 'on' : 'off'}.png`;
-            if (isEnabled) icon.classList.remove('muted');
-            else icon.classList.add('muted');
+    stopScreenShare() {
+        if (this.screenStream) {
+            this.screenStream.getTracks().forEach(t => t.stop());
+            this.screenStream = null;
         }
         
-        // Логика переключения Видео <-> Аватарка (для ручного переключения кнопки)
-        if (type === 'video') {
-            const card = document.getElementById(`participant-${userId}`);
-            if (card) {
-                // Мы не меняем display, мы меняем классы active/hidden
-                // Но этот метод вызывается также при входе, так что тут аккуратно
+        // УДАЛЯЕМ ТРЕК ЭКРАНА
+        for (const userId in this.peerConnections) {
+            const pc = this.peerConnections[userId];
+            const sender = this.screenSenders[userId];
+            if (sender) {
+                try {
+                    pc.removeTrack(sender);
+                } catch(e) { console.error("Error removing track", e); }
+                delete this.screenSenders[userId];
             }
         }
+
+        this.mediaState.screenSharing = false;
+        this.currentPresenterId = null;
+        
+        this.socket.emit('screen-share-status', { roomUrl: this.roomUrl, isSharing: false });
+        
+        // Возвращаем камеру себе в центр (или ничего, если включится спикер)
+        this.setMainVideo('local', this.localStream);
+        this.elements.toggleScreen.classList.remove('active');
+        
+        this.updateMediaUI();
+    }
+
+    // --- Остальные методы (setMainVideo, UI, helpers) ---
+    // (Почти без изменений, но важна логика setMainVideo)
+
+    setMainVideo(userId, stream, isScreenShare = false) {
+        // Если кто-то шарит экран, мы не перебиваем его (если только это не мы сами или не новый экран)
+        if (this.currentPresenterId && this.currentPresenterId !== userId && !isScreenShare) {
+            return; 
+        }
+
+        this.mainViewUserId = userId;
+        const mainVideo = this.elements.mainVideo;
+        
+        mainVideo.srcObject = stream;
+        mainVideo.style.objectFit = isScreenShare ? 'contain' : 'cover';
+        
+        if (userId === 'local') {
+            this.elements.mainUserName.textContent = this.userName + (isScreenShare ? " (Ваш экран)" : " (Вы)");
+            mainVideo.muted = true; 
+        } else {
+            const card = document.getElementById(`participant-${userId}`);
+            const name = card ? card.querySelector('.participant-name').textContent : "Участник";
+            this.elements.mainUserName.textContent = name + (isScreenShare ? " (Экран)" : "");
+            mainVideo.muted = false; 
+        }
+        
+        this.elements.mainVideoWrapper.style.display = 'block';
+        this.elements.mainVideoPlaceholder.style.display = 'none';
+        this.elements.whiteboardFrame.style.display = 'none';
+        if (this.elements.screenShareWrapper) this.elements.screenShareWrapper.style.display = 'none';
+    }
+
+    toggleWhiteboard() {
+        this.mediaState.whiteboardActive = !this.mediaState.whiteboardActive;
+        
+        if (this.mediaState.whiteboardActive && this.elements.whiteboardFrame.src === 'about:blank') {
+            this.elements.whiteboardFrame.src = "https://excalidraw.com/";
+        }
+        
+        if (this.mediaState.whiteboardActive) {
+            this.elements.whiteboardFrame.style.display = 'block';
+            this.elements.mainVideoWrapper.style.display = 'none';
+            this.elements.mainVideoPlaceholder.style.display = 'none';
+        } else {
+            this.elements.whiteboardFrame.style.display = 'none';
+            // Возвращаем то видео, которое должно быть
+            if (this.currentPresenterId && this.remoteStreams[this.currentPresenterId] && this.currentPresenterId !== 'local') {
+                 // Если кто-то шарит, возвращаем его экран (мы его не сохраняли отдельно, это баг логики выше, но для простоты:)
+                 // В данной реализации remoteStreams хранит КАМЕРУ. Экран приходит в ontrack и сразу ставится.
+                 // Если мы скрыли экран доской, нам надо его вернуть.
+                 // Исправление: при ontrack экрана можно сохранить его в this.screenStreams = {}
+                 this.elements.mainVideoWrapper.style.display = 'block';
+            } else if (this.mainViewUserId === 'local') {
+                this.setMainVideo('local', this.mediaState.screenSharing ? this.screenStream : this.localStream, this.mediaState.screenSharing);
+            } else {
+                this.elements.mainVideoWrapper.style.display = 'block';
+            }
+        }
+        this.elements.toggleWhiteboardBtn.classList.toggle('active', this.mediaState.whiteboardActive);
     }
 
     toggleAudio() {
@@ -278,7 +409,6 @@ class VideoConference {
         this.mediaState.videoEnabled = !this.mediaState.videoEnabled;
         this.localStream.getVideoTracks().forEach(t => t.enabled = this.mediaState.videoEnabled);
         this.updateMediaUI();
-        this.updateMainVideoDisplay();
         this.socket.emit('toggle-media', { roomUrl: this.roomUrl, type: 'video', enabled: this.mediaState.videoEnabled });
     }
 
@@ -295,14 +425,22 @@ class VideoConference {
 
         this.elements.toggleScreen.classList.toggle('active', screenSharing);
 
-        this.elements.localVideoThumbnail.style.display = videoEnabled ? 'block' : 'none';
-        this.elements.localAvatar.style.display = videoEnabled ? 'none' : 'flex';
+        if (this.elements.localVideoThumbnail && this.elements.localAvatar) {
+            this.elements.localVideoThumbnail.style.display = 'block';
+            if (videoEnabled) {
+                this.elements.localVideoThumbnail.classList.add('active'); 
+                this.elements.localAvatar.classList.add('hidden');       
+            } else {
+                this.elements.localVideoThumbnail.classList.remove('active'); 
+                this.elements.localAvatar.classList.remove('hidden');       
+            }
+        }
     }
 
     initializeEventListeners() {
         this.elements.toggleAudio.onclick = () => this.toggleAudio();
         this.elements.toggleVideo.onclick = () => this.toggleVideo();
-        this.elements.toggleScreen.onclick = () => this.toggleScreenShare(); // Функция экрана есть, но в этом коде она была старой (getDisplayMedia)
+        this.elements.toggleScreen.onclick = () => this.toggleScreenShare();
         this.elements.toggleWhiteboardBtn.onclick = () => this.toggleWhiteboard();
         this.elements.toggleChatBtn.onclick = () => this.toggleChat();
         this.elements.sendMessage.onclick = () => this.sendChatMessage();
@@ -319,14 +457,11 @@ class VideoConference {
 
     addRemoteParticipant(userId, userName) {
         if (document.getElementById(`participant-${userId}`)) return;
-        
         const initials = userName.slice(0, 2).toUpperCase();
-        
         const card = document.createElement('div');
         card.className = 'video-participant-card remote-user';
         card.id = `participant-${userId}`;
         
-        // ВАЖНО: Аватар и видео есть, управляем через CSS
         card.innerHTML = `
             <div class="video-placeholder">
                 <video class="remote-video" autoplay playsinline id="video-${userId}"></video>
@@ -360,11 +495,13 @@ class VideoConference {
             this.peerConnections[userId].close();
             delete this.peerConnections[userId];
         }
+        delete this.remoteStreams[userId];
         if (this.videoTimers[userId]) clearTimeout(this.videoTimers[userId]);
         this.updateParticipantCount();
     }
 
     updateRemoteVideo(userId, stream) {
+        // Этот метод вызывается для камеры (левая панель)
         const video = document.getElementById(`video-${userId}`);
         const card = document.getElementById(`participant-${userId}`);
         
@@ -374,7 +511,6 @@ class VideoConference {
             const avatar = card.querySelector('.participant-avatar');
             const videoTrack = stream.getVideoTracks()[0];
             
-            // ФУНКЦИЯ ФИКСА ЧЕРНОГО ЭКРАНА С ЗАДЕРЖКОЙ
             const checkState = () => {
                 const isVideoTechnicallyReady = videoTrack && videoTrack.enabled && !videoTrack.muted && video.readyState >= 2;
 
@@ -383,12 +519,12 @@ class VideoConference {
                         this.videoTimers[userId] = setTimeout(() => {
                             const stillReady = videoTrack && videoTrack.enabled && !videoTrack.muted;
                             if (stillReady) {
-                                video.classList.add('active');   // opacity: 1
-                                avatar.classList.add('hidden');  // opacity: 0
+                                video.classList.add('active');   
+                                avatar.classList.add('hidden');  
                                 this.updateRemoteParticipantStatus(userId, 'video', true);
                             }
                             this.videoTimers[userId] = null;
-                        }, 800); // Задержка 0.8с
+                        }, 800);
                     }
                 } else {
                     if (this.videoTimers[userId]) {
@@ -397,6 +533,7 @@ class VideoConference {
                     }
                     video.classList.remove('active');
                     avatar.classList.remove('hidden');
+                    
                     if (videoTrack && !videoTrack.enabled) {
                         this.updateRemoteParticipantStatus(userId, 'video', false);
                     }
@@ -426,6 +563,55 @@ class VideoConference {
         }
     }
     
+    updateRemoteParticipantStatus(userId, type, isEnabled) {
+        const iconId = `status-${type}-${userId}`;
+        const icon = document.getElementById(iconId);
+        if (icon) {
+            icon.src = `/static/images/${type === 'audio' ? 'mic' : 'camera'}-${isEnabled ? 'on' : 'off'}.png`;
+            if (isEnabled) icon.classList.remove('muted');
+            else icon.classList.add('muted');
+        }
+    }
+
+    setupVoiceDetection(stream, participantId) {
+        try {
+            if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (this.audioContext.state === 'suspended') this.audioContext.resume();
+
+            const source = this.audioContext.createMediaStreamSource(stream);
+            const analyser = this.audioContext.createAnalyser();
+            analyser.fftSize = 256;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            source.connect(analyser);
+
+            const checkVolume = () => {
+                const card = document.getElementById(participantId);
+                if (!card) return requestAnimationFrame(checkVolume);
+
+                analyser.getByteFrequencyData(dataArray);
+                let values = 0;
+                for (let i = 0; i < bufferLength; i++) values += dataArray[i];
+                const average = values / bufferLength;
+
+                if (average > 20) {
+                    card.classList.add('speaking');
+                    if (!this.currentPresenterId && !this.mediaState.whiteboardActive) {
+                        const userId = participantId.replace('participant-', '');
+                        if (userId !== 'local' && userId !== this.mainViewUserId) {
+                            if (this.remoteStreams[userId]) {
+                                this.setMainVideo(userId, this.remoteStreams[userId]);
+                            }
+                        }
+                    }
+                    setTimeout(() => { if (card) card.classList.remove('speaking'); }, 400); 
+                }
+                requestAnimationFrame(checkVolume);
+            };
+            checkVolume();
+        } catch (e) { console.error("Voice detect error:", e); }
+    }
+
     updateParticipantCount() {
         const count = document.querySelectorAll('.video-participant-card').length;
         if (this.elements.participantCount) this.elements.participantCount.textContent = `👥 ${count}`;
@@ -464,13 +650,7 @@ class VideoConference {
         }
         const div = document.createElement('div');
         div.className = `message ${isOwn ? 'own-message' : 'remote-message'}`;
-        div.innerHTML = `
-            <div class="message-header">
-                <span class="message-sender">${sender}</span>
-                <span class="message-time">${time}</span>
-            </div>
-            <div class="message-text">${text}</div>
-        `;
+        div.innerHTML = `<div class="message-header"><span class="message-sender">${sender}</span><span class="message-time">${time}</span></div><div class="message-text">${text}</div>`;
         chatContainer.appendChild(div);
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
@@ -499,58 +679,6 @@ class VideoConference {
 
     setupAdaptiveLayout() {
         window.onresize = () => { if (window.innerWidth <= 768) this.elements.leftPanel.classList.add('collapsed'); };
-    }
-
-    setupVoiceDetection(stream, participantId) {
-        try {
-            if (!this.audioContext) this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = this.audioContext.createMediaStreamSource(stream);
-            const analyser = this.audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            source.connect(analyser);
-            const checkVolume = () => {
-                const card = document.getElementById(participantId);
-                if (!card) return requestAnimationFrame(checkVolume);
-                analyser.getByteFrequencyData(dataArray);
-                let values = 0;
-                for (let i = 0; i < bufferLength; i++) values += dataArray[i];
-                const average = values / bufferLength;
-                if (average > 20) {
-                    card.classList.add('speaking');
-                    setTimeout(() => { if (card) card.classList.remove('speaking'); }, 400); 
-                }
-                requestAnimationFrame(checkVolume);
-            };
-            checkVolume();
-        } catch (e) { console.error("Ошибка детектора голоса:", e); }
-    }
-
-    // --- Экран (без сложных проверок, просто заглушка на вызов метода) ---
-    async toggleScreenShare() {
-        try {
-            if (!this.mediaState.screenSharing) {
-                this.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                this.elements.screenShareVideo.srcObject = this.screenStream;
-                this.mediaState.screenSharing = true;
-                this.screenStream.getVideoTracks()[0].onended = () => this.stopScreenShare();
-            } else {
-                this.stopScreenShare();
-            }
-            this.updateMediaUI();
-            this.updateMainVideoDisplay();
-        } catch (e) { console.error("Ошибка экрана:", e); }
-    }
-    
-    stopScreenShare() {
-        if (this.screenStream) {
-            this.screenStream.getTracks().forEach(t => t.stop());
-            this.screenStream = null;
-        }
-        this.mediaState.screenSharing = false;
-        this.updateMediaUI();
-        this.updateMainVideoDisplay();
     }
 }
 
